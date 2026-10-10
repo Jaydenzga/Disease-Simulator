@@ -1,21 +1,30 @@
+import streamlit as st
 import matplotlib.pyplot as plt
 
-population = 1000
-infected = 2
+population = st.slider("Population", 100, 10000, 1000)
+initial_infected = st.slider("Initial Infected", 1, 100, 2)
+infection_rate = st.slider("Infection Rate", 0.01, 0.5, 0.05)
+recovery_rate = st.slider("Recovery Rate", 0.01, 0.5, 0.03)
+days = st.slider("Days", 10, 200, 30)
+
+
+
+
+#to add: reinfection, deaths, vaccine effectiveness,
+
+vaccination_percentage = st.slider("Vaccinated (%)", 0, 100, 0)
+vaccinated = population * (vaccination_percentage / 100)
+infected = initial_infected
 recovered = 0
 suseptible = population - infected
-
-infection_rate = 0.05
-recovery_rate = 0.03
-
-days = 30
 
 infected_list = []
 suseptible_list = []
 recovered_list = []
+vaccinated_list = []
 
 for day in range(days): 
-    new_infections = infected * infection_rate * (suseptible / population)
+    new_infections = (infected * infection_rate) * (suseptible / population)
     new_recoveries = infected * recovery_rate
 
     suseptible -= new_infections
@@ -25,14 +34,21 @@ for day in range(days):
     infected_list.append(infected)
     suseptible_list.append(suseptible)
     recovered_list.append(recovered)
+    vaccinated_list.append(vaccinated)
 
 
-plt.plot(infected_list, label="Infected", color="red")
-plt.plot(recovered_list, label="Recovered", color="green")
-plt.plot(suseptible_list, label="Susceptible", color="blue")
 
-plt.title("Disease Spread Over Time")
-plt.xlabel("Days")
-plt.ylabel("Infected People")
-plt.legend()
-plt.show()
+fig, ax = plt.subplots()
+
+ax.plot(infected_list, label="Infected", color="red")
+ax.plot(recovered_list, label="Recovered", color="green")
+ax.plot(suseptible_list, label="Susceptible", color="blue")
+ax.plot(vaccinated_list, label="Vaccinated", color="purple")
+
+ax.set_title("Disease Spread (SIR Model)")
+ax.set_xlabel("Days")
+ax.set_ylabel("People")
+ax.legend()
+
+st.pyplot(fig)
+

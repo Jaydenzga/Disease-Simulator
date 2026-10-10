@@ -9,7 +9,7 @@ An interactive epidemic simulator built with Streamlit. Adjust population size, 
 Requires Python 3.11 or newer.
 
 ```bash
-git clone git@github.com:Jaydenzga/Disease-Simulator.git
+git clone https://github.com/Jaydenzga/Disease-Simulator.git
 cd Disease-Simulator
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate

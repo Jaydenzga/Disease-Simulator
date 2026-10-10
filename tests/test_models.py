@@ -137,3 +137,45 @@ def test_full_vaccination_with_immunity_stops_spread():
     )
     assert (results["S"] == 0).all()
     assert results["I"].is_monotonic_decreasing
+
+
+def _all_vaccinated_leaky(days):
+    """Everyone susceptible is vaccinated, so every new infection is a breakthrough."""
+    return simulate_sir(
+        SimulationConfig(1000, 10, days),
+        DiseaseParams(0.4, 0.1),
+        Vaccination(1.0, 0.5, VaccineModel.LEAKY),
+    )
+
+
+def test_breakthrough_infections_enter_infected():
+    results = _all_vaccinated_leaky(1)
+    day0, day1 = results.iloc[0], results.iloc[1]
+    assert day0["S"] == 0 and day0["V"] == 990
+
+    breakthrough = 0.4 * 10 / 1000 * (1 - 0.5) * 990
+    assert day0["V"] - day1["V"] == pytest.approx(breakthrough)
+    assert day1["I"] == pytest.approx(10 + breakthrough - 0.1 * 10)
+    # Only people who were already infectious can have recovered.
+    assert day1["R"] == pytest.approx(0.1 * 10)
+
+
+def test_breakthrough_infections_can_drive_an_outbreak():
+    # beta * (1 - e) = 0.2 > gamma = 0.1, so infections grow with no unvaccinated people.
+    results = _all_vaccinated_leaky(200)
+    assert results["I"].max() > results["I"].iloc[0]
+    assert (results["S"] == 0).all()
+    # Everyone who left V was infected and is now in I or R.
+    left_v = results["V"].iloc[0] - results["V"].iloc[-1]
+    infected_ever = results["I"].iloc[-1] + results["R"].iloc[-1] - results["I"].iloc[0]
+    assert left_v == pytest.approx(infected_ever)
+
+
+@pytest.mark.parametrize("model", list(VaccineModel))
+def test_higher_effectiveness_means_fewer_infections(model):
+    config, disease = SimulationConfig(1000, 2, 300), DiseaseParams(0.3, 0.1)
+    ever_infected = [
+        simulate_sir(config, disease, Vaccination(0.6, e, model))[["I", "R"]].iloc[-1].sum()
+        for e in (0.0, 0.25, 0.5, 0.75, 1.0)
+    ]
+    assert all(a > b for a, b in itertools.pairwise(ever_infected))

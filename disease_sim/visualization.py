@@ -4,18 +4,33 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.figure import Figure
 
+from disease_sim.parameters import VaccineModel
+
 SERIES = [
     ("I", "Infected", "red"),
     ("R", "Recovered", "green"),
     ("S", "Susceptible", "blue"),
-    ("V", "Vaccinated", "purple"),
+    ("V", None, "purple"),  # label depends on the vaccine model
 ]
 
+# What the V compartment holds differs by vaccine model, so its label does too.
+# All-or-nothing: only the people the vaccine protected (vaccine failures are in S).
+# Leaky: every vaccinated person not yet infected (breakthrough infections leave V).
+VACCINATED_LABELS = {
+    VaccineModel.ALL_OR_NOTHING: "Vaccinated (immune)",
+    VaccineModel.LEAKY: "Vaccinated (not yet infected)",
+}
 
-def compartment_figure(results: pd.DataFrame, title: str = "Disease Spread (SIR Model)") -> Figure:
+
+def compartment_figure(
+    results: pd.DataFrame,
+    vaccine_model: VaccineModel = VaccineModel.ALL_OR_NOTHING,
+    title: str = "Disease Spread (SIR Model)",
+) -> Figure:
     """Line chart of every compartment over time."""
     fig, ax = plt.subplots()
     for column, label, color in SERIES:
+        label = label or VACCINATED_LABELS[VaccineModel(vaccine_model)]
         ax.plot(results["day"], results[column], label=label, color=color)
     ax.set_title(title)
     ax.set_xlabel("Days")

@@ -65,7 +65,7 @@ Design rules:
 `requirements.txt` (runtime, used by Streamlit Community Cloud):
 
 ```
-streamlit>=1.32
+streamlit>=1.33
 plotly>=5.18
 pandas>=2.0
 numpy>=1.26

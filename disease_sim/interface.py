@@ -16,6 +16,19 @@ VACCINE_MODEL_LABELS = {
     VaccineModel.LEAKY: "Partial protection (leaky)",
 }
 
+VACCINATED_CAPTIONS = {
+    VaccineModel.ALL_OR_NOTHING: (
+        "**Vaccinated (immune)** counts only the people the vaccine protected "
+        "(coverage × effectiveness). Vaccinated people it failed to protect are "
+        "counted as Susceptible."
+    ),
+    VaccineModel.LEAKY: (
+        "**Vaccinated (not yet infected)** counts every vaccinated person who has not "
+        "been infected. Each has their infection risk reduced by the effectiveness %. "
+        "Breakthrough infections move people to Infected, so this line can fall."
+    ),
+}
+
 
 def run() -> None:
     population = st.slider("Population", 100, 10000, 1000)
@@ -48,4 +61,5 @@ def run() -> None:
         ),
     )
 
-    st.pyplot(compartment_figure(results))
+    st.pyplot(compartment_figure(results, vaccine_model))
+    st.caption(VACCINATED_CAPTIONS[vaccine_model])

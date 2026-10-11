@@ -31,7 +31,7 @@ PRESETS = (
     DiseasePreset("Seasonal influenza", 1.3, 4.0, 2.0, "about 1.2–1.4"),
     DiseasePreset("1918 pandemic influenza", 2.0, 4.0, 2.0, "about 1.5–3"),
     DiseasePreset("Measles", 15.0, 5.0, 8.0, "about 12–18"),
-    DiseasePreset("Chickenpox", 10.0, 7.0, 14.0, "about 7–12"),
+    DiseasePreset("Chickenpox", 10.0, 7.0, 14.0, "about 3–12"),
 )
 
 PRESETS_BY_NAME = {preset.name: preset for preset in PRESETS}

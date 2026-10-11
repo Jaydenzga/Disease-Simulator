@@ -1,0 +1,7 @@
+# The oldest supported versions: the lower bounds in requirements.in.
+# CI installs exactly these on the oldest supported Python to check the bounds.
+streamlit==1.54.0
+plotly==5.18.0
+pandas==2.2.2
+numpy==2.0.0
+pytest==9.0.3

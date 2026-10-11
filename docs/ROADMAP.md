@@ -1,6 +1,6 @@
 # Disease Simulator — Implementation Roadmap
 
-Status: **Approved 2026-10-10.** Phases 1–3 complete. Disease presets added on `feature/disease-presets`. Decisions are recorded at the end of this document.
+Status: **Approved 2026-10-10.** Phases 1–3 and disease presets complete. Phase 4 (deployment preparation) in review on `feature/phase-4-deployment`. Decisions are recorded at the end of this document.
 Owner: Jayden (approves architecture and features) · Lead engineer: Claude Code
 
 This document is the plan for turning the single-file Streamlit SIR demo (`main.py`) into a tested, documented, deployable epidemiological simulation app.
@@ -82,8 +82,8 @@ ruff>=0.4
 Notes:
 - **matplotlib is removed** (Phase 3). Plotly replaced it; Phases 1–2 used matplotlib temporarily so the app worked after each phase.
 - **No SciPy.** The models are simple enough to step directly (see §4.1), and leaving SciPy out keeps deployment light.
-- I'll use lower-bound pins as above and confirm the exact versions on a clean install during Phase 4.
-- **Python version:** CI tests 3.11, 3.12, and 3.13. Your local Python is 3.14. I'll check that all dependencies install on 3.14 and add it to the CI matrix if they do.
+- **Phase 4 update:** the ranges now live in `requirements.in` and `requirements.txt` is a lock file generated from it with `uv pip compile`. Testing the lower bounds showed that NumPy must be ≥ 2.0 (Streamlit's pyarrow needs it) and pandas ≥ 2.2.2 (the first release built for NumPy 2). The Streamlit floor is 1.54, which fixes two security advisories (CVE-2026-33682, CVE-2026-10804) present in 1.50–1.53. `ci/requirements-min.txt` pins the bounds and CI tests them. The ranges above are the original plan; `requirements.in` is the current source.
+- **Python version:** CI tests 3.11, 3.12, 3.13, and 3.14.
 
 ---
 
@@ -246,10 +246,10 @@ Tasks
 7. Update `CLAUDE.md` to match the final architecture.
 
 Acceptance criteria
-- [ ] `pytest` passes locally and in CI. CI shows green on `main`.
-- [ ] `ruff check .` passes.
-- [ ] The app starts from a fresh clone using only the README instructions.
-- [ ] Deployment checklist in the README is complete. **The actual deploy is done by you** at share.streamlit.io: sign in with GitHub, select `Jaydenzga/Disease-Simulator`, branch `main`, entry file `main.py`. I can't perform that step, but I'll make sure nothing else is needed.
+- [ ] `pytest` passes locally and in CI. CI shows green on `main`. *(Passes locally on 3.11–3.14 and with minimum versions; CI runs once the PR is opened.)*
+- [x] `ruff check .` passes.
+- [x] The app starts from a fresh clone using only the README instructions.
+- [x] Deployment checklist is complete (docs/DEPLOYMENT.md). **The actual deploy is done by you** at share.streamlit.io: sign in with GitHub, select `Jaydenzga/Disease-Simulator`, branch `main`, entry file `main.py`. I can't perform that step, but I'll make sure nothing else is needed.
 - [ ] Feedback from at least a few real users is collected, summarized, and the top issues are fixed or logged.
 
 ### Phase 4.5 — Code and Architecture Bootcamp
@@ -336,3 +336,12 @@ Disease deaths (SEIRD), waning immunity or reinfection (SEIRS), vaccination roll
 2. **Model choice is kept:** a preset changes only disease values, not SIR/SEIR, the population, or the interventions.
 3. **Slider ranges widened:** R₀ up to 20 (was 10) and β up to 3 per day (was 2), so measles fits.
 4. **Values are rounded published estimates, not fits.** MODEL.md §2 lists them with sources and limitations.
+
+## Phase 4 decisions (2026-10-11, pending review)
+
+1. **Dependencies:** `requirements.in` (ranges) → `requirements.txt` (uv-compiled lock, exact versions for Python 3.11–3.14). Dev tools are pinned in `requirements-dev.txt`. Floors raised to NumPy 2.0 and pandas 2.2.2 after testing them, and to Streamlit 1.54 for security fixes. `pip-audit` finds no known vulnerabilities in the lock or the minimum set.
+2. **CI:** one workflow with three jobs: Ruff; pytest on 3.11–3.14 plus an app start-up check; pytest with minimum versions on 3.11.
+3. **Coverage:** 99% of `disease_sim/` lines (target 90%), measured once; no coverage gate in CI.
+4. **Presets:** numerical values unchanged pending the owner's decisions. MODEL.md §2 documents the latent, infectious, and incubation periods, R₀, and Rₑ for each preset with sources, and the model's generation time compared with published serial intervals. The documented chickenpox R₀ range was broadened to about 3–12 (owner-approved). Tests pin the values and check the growth-rate formula.
+5. **Status wording:** the accuracy and unfinished-outbreak messages were rewritten in plain language.
+6. **Deployment:** Streamlit Community Cloud with Python 3.13, no secrets. Steps in docs/DEPLOYMENT.md. The owner deploys.

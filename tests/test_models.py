@@ -313,6 +313,39 @@ def test_seir_final_size_matches_kermack_mckendrick(beta, gamma):
     assert abs(1 - results["S"].iloc[-1] / n - exact) / exact < 0.01
 
 
+def _early_growth_rate(model, r0, latent, infectious):
+    """Root r of (1 + r * latent)(1 + r * infectious) = R0 (SIR: latent = 0)."""
+    if model is ModelType.SIR:
+        return (r0 - 1) / infectious
+    a, b, c = latent * infectious, latent + infectious, 1 - r0
+    return (-b + math.sqrt(b * b - 4 * a * c)) / (2 * a)
+
+
+@pytest.mark.parametrize(
+    "model, r0, latent, infectious",
+    [
+        # The disease presets' values (SEIR) ...
+        (ModelType.SEIR, 2.5, 3.0, 5.0),
+        (ModelType.SEIR, 1.3, 2.0, 4.0),
+        (ModelType.SEIR, 15.0, 8.0, 5.0),
+        (ModelType.SEIR, 10.0, 14.0, 7.0),
+        # ... and SIR at rates where 50 steps per day are accurate to well under 1%.
+        (ModelType.SIR, 2.5, 0.0, 5.0),
+        (ModelType.SIR, 1.3, 0.0, 4.0),
+    ],
+)
+def test_early_growth_rate_matches_the_generation_time_formula(model, r0, latent, infectious):
+    """MODEL.md §2: early growth uses latent period + whole infectious period."""
+    disease = DiseaseParams.from_r0(r0, infectious, latent or 1.0, model)
+    expected = _early_growth_rate(model, r0, latent, infectious)
+    days = min(200, math.ceil(15 / expected))  # still almost everyone susceptible
+    df = simulate(SimulationConfig(1e12, 1, days, 50), disease)
+    infected = df["E"] + df["I"]
+    half = days // 2
+    observed = math.log(infected[days] / infected[half]) / (days - half)
+    assert observed == pytest.approx(expected, rel=0.01)
+
+
 def test_latent_period_delays_and_flattens_the_peak():
     config = SimulationConfig(1000, 2, 300)
     sir = simulate(config, DiseaseParams(0.3, 0.1))

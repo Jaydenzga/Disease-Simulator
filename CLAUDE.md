@@ -14,7 +14,10 @@ uv venv -p 3.13 .venv && uv pip install -p .venv -r requirements-dev.txt   # or 
 .venv/bin/python -m pytest                # all tests
 .venv/bin/python -m pytest tests/test_models.py::test_vaccine_models_agree_at_full_effectiveness
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
+uv pip compile --universal --python-version 3.11 requirements.in -o requirements.txt   # after editing requirements.in
 ```
+
+Dependencies: `requirements.in` holds the supported ranges; `requirements.txt` is the generated lock (exact versions for Python 3.11–3.14) that Streamlit Cloud and CI install. Never edit `requirements.txt` by hand. `ci/requirements-min.txt` pins the lower bounds; CI tests them on Python 3.11, so raise a bound there and in `requirements.in` together. CI (`.github/workflows/tests.yml`) runs Ruff, pytest on 3.11–3.14, the minimum-versions job, and an app start-up check.
 
 ## Architecture
 
@@ -29,6 +32,7 @@ uv venv -p 3.13 .venv && uv pip install -p .venv -r requirements-dev.txt   # or 
 - Disease presets (`presets.py`) are rounded published R₀ and period values. Choosing one fills the disease sliders in both input modes, keeps the chosen model, and any later disease edit sets the preset back to Custom. Every preset must fit the slider ranges (tested). Sources are in MODEL.md §2.
 - UI wording (tooltips, captions, run summary, status messages) lives in `explain.py`; CSV export in `export.py`. Both are pure so tests check them directly. Figures in `visualization.py` take fixed colors and line patterns per compartment and per scenario name. On log axes, values below `LOG_FLOOR` are hidden with a note.
 - App tests (`tests/test_app.py`) use `AppTest`. Results are cached across runs, so the autouse fixture clears `_compute`. A test that expects a recomputation after returning to earlier settings must clear the cache first. Look up widgets by label, not index: main-area widgets come before sidebar widgets in `AppTest` lists.
+- `docs/DEPLOYMENT.md` is the Streamlit Community Cloud guide; README screenshots are in `docs/images/` (retake them when the UI changes visibly).
 - `docs/MODEL.md` must describe exactly what the code implements. Update it with any change to equations, metrics, or assumptions.
 
 ## Invariants the tests enforce

@@ -42,3 +42,19 @@ def compartment_figure(
     ax.set_ylabel("People")
     ax.legend()
     return fig
+
+
+SCENARIO_COLORS = ["black", "purple", "darkorange", "teal"]
+
+
+def scenario_comparison_figure(results: pd.DataFrame) -> Figure:
+    """Infectious curve of every scenario in long-format results, on one chart."""
+    fig, ax = plt.subplots()
+    for index, (name, group) in enumerate(results.groupby("scenario", sort=False)):
+        color = SCENARIO_COLORS[index % len(SCENARIO_COLORS)]
+        ax.plot(group["day"], group["I"], label=name, color=color)
+    ax.set_title("Infected Over Time by Scenario")
+    ax.set_xlabel("Days")
+    ax.set_ylabel("People infected")
+    ax.legend()
+    return fig

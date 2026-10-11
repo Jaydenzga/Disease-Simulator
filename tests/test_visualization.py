@@ -1,8 +1,16 @@
 import pytest
 
 from disease_sim.models import simulate, simulate_sir
-from disease_sim.parameters import DiseaseParams, ModelType, SimulationConfig, VaccineModel
-from disease_sim.visualization import compartment_figure
+from disease_sim.parameters import (
+    ContactReduction,
+    DiseaseParams,
+    ModelType,
+    SimulationConfig,
+    Vaccination,
+    VaccineModel,
+)
+from disease_sim.scenarios import default_scenarios, run_scenarios
+from disease_sim.visualization import compartment_figure, scenario_comparison_figure
 
 RESULTS = simulate_sir(SimulationConfig(1000, 2, 30), DiseaseParams(0.3, 0.1))
 
@@ -40,3 +48,14 @@ def test_seir_chart_shows_exposed():
     by_label = {line.get_label(): line.get_ydata() for line in ax.get_lines()}
     assert ax.get_title() == "Disease Spread (SEIR Model)"
     assert list(by_label["Exposed (not yet infectious)"]) == list(results["E"])
+
+
+def test_scenario_comparison_plots_infected_for_each_scenario():
+    scenarios = default_scenarios(Vaccination(0.5, 0.9), ContactReduction(0.3))
+    results = run_scenarios(SimulationConfig(1000, 2, 60), DiseaseParams(0.3, 0.1), scenarios)
+    ax = scenario_comparison_figure(results).axes[0]
+    by_label = {line.get_label(): list(line.get_ydata()) for line in ax.get_lines()}
+    assert list(by_label) == [s.name for s in scenarios]
+    for s in scenarios:
+        assert by_label[s.name] == results.loc[results["scenario"] == s.name, "I"].tolist()
+    assert ax.get_ylabel() == "People infected"

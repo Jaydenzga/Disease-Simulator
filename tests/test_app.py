@@ -219,3 +219,53 @@ def test_unfinished_epidemic_warning():
     assert not app.exception
     assert not app.dataframe[0].value["Still infected at end"].any()
     assert interface.UNFINISHED_WARNING not in _warnings(app)
+
+
+def _reduction_days(app):
+    labels = ("Reduction starts on day", "Reduction ends on day")
+    return tuple(
+        _slider(app, label).value if label in [s.label for s in app.slider] else None
+        for label in labels
+    )
+
+
+def test_reduction_days_survive_lengthening_the_simulation():
+    app = _app()
+    _slider(app, "Days").set_value(100).run()
+    _slider(app, "Reduction starts on day").set_value(10).run()
+    app.checkbox[0].check().run()
+    _slider(app, "Reduction ends on day").set_value(50).run()
+
+    _slider(app, "Days").set_value(150).run()
+    assert not app.exception
+    assert _reduction_days(app) == (10, 50)
+
+
+def test_reduction_days_are_clamped_when_shortening_the_simulation():
+    app = _app()
+    _slider(app, "Days").set_value(100).run()
+    _slider(app, "Reduction starts on day").set_value(30).run()
+    app.checkbox[0].check().run()
+    _slider(app, "Reduction ends on day").set_value(80).run()
+
+    _slider(app, "Days").set_value(60).run()  # end day 80 no longer fits
+    assert _reduction_days(app) == (30, 60)
+
+    _slider(app, "Days").set_value(20).run()  # neither fits; nothing left to lift
+    assert _reduction_days(app) == (19, None)
+    assert app.checkbox[0].disabled
+
+    _slider(app, "Days").set_value(100).run()  # lengthening keeps the clamped values
+    assert not app.exception
+    assert _reduction_days(app) == (19, 60)
+
+
+def test_end_day_follows_a_later_start_day(simulations):
+    app = _app()
+    _slider(app, "Days").set_value(100).run()
+    app.checkbox[0].check().run()
+    _slider(app, "Reduction ends on day").set_value(40).run()
+    _slider(app, "Reduction starts on day").set_value(60).run()
+    assert _reduction_days(app) == (60, 61)
+    contact = simulations[-1]["scenarios"][CONTACT_REDUCTION_ONLY].contact_reduction
+    assert (contact.start_day, contact.end_day) == (60, 61)

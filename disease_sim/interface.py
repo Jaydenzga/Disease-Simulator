@@ -140,6 +140,22 @@ def _vaccination_controls() -> Vaccination:
     )
 
 
+def _bounded_slider(label: str, key: str, low: int, high: int, default: int) -> int:
+    """Integer slider whose range depends on other inputs, keeping the user's value.
+
+    Streamlit treats a slider whose range changes as a new widget and resets it,
+    and forgets a widget's value on any run where it is not drawn. The value is
+    therefore kept under a separate session key, clamped into the current range,
+    and handed back to the slider before it is drawn.
+    """
+    store = f"_kept_{key}"
+    if key in st.session_state:  # the slider's value from the previous run
+        st.session_state[store] = st.session_state[key]
+    value = st.session_state.get(store, default)
+    st.session_state[key] = st.session_state[store] = min(max(value, low), high)
+    return st.slider(label, low, high, key=key)
+
+
 def _contact_reduction_controls(days: int) -> ContactReduction:
     reduction = st.slider(
         "Contact Reduction (%)",
@@ -148,13 +164,15 @@ def _contact_reduction_controls(days: int) -> ContactReduction:
         0,
         help="Distancing or masking: lowers the transmission rate by this % while active.",
     )
-    start_day = st.slider("Reduction starts on day", 0, days - 1, 0)
+    start_day = _bounded_slider("Reduction starts on day", "reduction_start", 0, days - 1, 0)
     end_day = None
     # The end-day slider needs at least two choices (start + 1 .. days).
     can_lift = start_day + 1 < days
     lift = st.checkbox("Lift the reduction before the end of the simulation", disabled=not can_lift)
     if lift and can_lift:
-        end_day = st.slider("Reduction ends on day", start_day + 1, days, days)
+        end_day = _bounded_slider(
+            "Reduction ends on day", "reduction_end", start_day + 1, days, days
+        )
     return ContactReduction(reduction / 100, start_day, end_day)
 
 

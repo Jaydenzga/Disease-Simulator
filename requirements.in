@@ -1,0 +1,8 @@
+# Direct runtime dependencies with the supported version ranges.
+# The lower bounds are tested in CI (ci/requirements-min.txt).
+# Edit this file, then regenerate the lock file requirements.txt:
+#   uv pip compile --universal --python-version 3.11 requirements.in -o requirements.txt
+streamlit>=1.50,<2
+plotly>=5.18,<8
+pandas>=2.2.2,<4  # first pandas release built for NumPy 2
+numpy>=2.0,<3  # Streamlit's pyarrow needs NumPy 2

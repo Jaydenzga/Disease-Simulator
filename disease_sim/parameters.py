@@ -174,6 +174,9 @@ class SimulationConfig:
             )
         _check_positive_integer("days", self.days)
         _check_positive_integer("steps_per_day", self.steps_per_day)
+        # Accept integer-valued floats such as 30.0; the engine needs real ints.
+        object.__setattr__(self, "days", int(self.days))
+        object.__setattr__(self, "steps_per_day", int(self.steps_per_day))
 
 
 @dataclass(frozen=True)

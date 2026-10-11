@@ -1,6 +1,7 @@
 import pytest
 
 from disease_sim.interventions import apply_vaccination
+from disease_sim.models import simulate
 from disease_sim.parameters import (
     DiseaseParams,
     ModelType,
@@ -117,3 +118,11 @@ def test_from_r0_round_trip():
 def test_from_r0_rejects_nonpositive_periods(period):
     with pytest.raises(ValueError, match="infectious_period must be positive"):
         DiseaseParams.from_r0(2, period)
+
+
+def test_integer_valued_floats_are_accepted_as_integers():
+    config = SimulationConfig(1000, 2, 30.0, 4.0)
+    assert (config.days, config.steps_per_day) == (30, 4)
+    assert isinstance(config.days, int) and isinstance(config.steps_per_day, int)
+    results = simulate(config, DiseaseParams(0.3, 0.1))
+    assert len(results) == 31

@@ -1,6 +1,6 @@
 import pytest
 
-from disease_sim.models import COMPARTMENTS, simulate
+from disease_sim.models import COMPARTMENTS, estimate_step_error, simulate
 from disease_sim.parameters import ContactReduction, DiseaseParams, SimulationConfig, Vaccination
 from disease_sim.scenarios import (
     COMBINED,
@@ -9,6 +9,7 @@ from disease_sim.scenarios import (
     VACCINATION_ONLY,
     Scenario,
     default_scenarios,
+    estimate_scenarios_step_error,
     run_scenarios,
     summarize_scenarios,
 )
@@ -88,3 +89,17 @@ def test_shared_disease_means_shared_r0(table):
 def test_scenario_names_validated(scenarios, message):
     with pytest.raises(ValueError, match=message):
         run_scenarios(CONFIG, DISEASE, scenarios)
+
+
+def test_scenario_step_error_is_the_worst_scenario(results):
+    finer = SimulationConfig(CONFIG.population, CONFIG.initial_infected, CONFIG.days, 8)
+    per_scenario = [
+        estimate_step_error(
+            simulate(CONFIG, DISEASE, s.vaccination, s.contact_reduction),
+            simulate(finer, DISEASE, s.vaccination, s.contact_reduction),
+        )
+        for s in SCENARIOS
+    ]
+    estimate = estimate_scenarios_step_error(CONFIG, DISEASE, SCENARIOS, results)
+    assert estimate == pytest.approx(max(per_scenario))
+    assert 0 < estimate < 0.05  # default 4 steps/day is accurate for these rates

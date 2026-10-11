@@ -149,7 +149,24 @@ R ← R + recoveries
 | 2.0 (0.5, 0.25) | +1.85% | +0.44% | +0.18% |
 | 1.67 (0.05, 0.03) | +0.18% | +0.05% | +0.02% |
 
-The default is **4 steps per day**. **1 step per day** is the legacy setting: it reproduces the original version of this app exactly, which a regression test checks. 10 steps per day is the most accurate option offered. Errors grow when β·Δt, γ·Δt, or σ·Δt approach 1, for example with a latent period of under a day at 1 step per day.
+The app offers 1, 4, 10, 20, and 50 steps per day. The default is **4**. **1 step per day** is the legacy setting: it reproduces the original version of this app exactly, which a regression test checks.
+
+The final size is the most forgiving measure. The **shape and timing** of the curve need smaller steps when rates are fast. Measured as the largest daily difference in I from a near-exact run (800 steps per day), relative to the peak:
+
+| Disease | 1 step/day | 4 | 10 | 20 | 50 |
+|---|---|---|---|---|---|
+| β = 0.05, γ = 0.03 (app defaults) | 1.5% | 0.4% | 0.1% | 0.1% | 0.0% |
+| β = 0.5, γ = 0.03 (rate sliders at maximum) | 28% | 7.5% | 3.0% | 1.5% | 0.6% |
+| R₀ = 4, infectious period 1 day | 105% | 49% | 22% | 10% | 3.8% |
+| SEIR default (β = 0.3, γ = 0.1, 5-day latent period) | 7.5% | 1.8% | 0.7% | 0.4% | 0.1% |
+
+**Estimating the error while the app runs: step doubling.** Because Euler's error is roughly proportional to Δt, halving the step roughly halves the error. The app therefore re-runs every scenario with twice the steps per day and compares:
+
+```
+estimated error ≈ 2 × max over days |I_k(t) − I_2k(t)| ÷ peak of I_2k
+```
+
+If the estimate exceeds **5%** for any scenario, the app shows a warning with the approximate number of steps needed (k × error ÷ 5%, rounded up to an offered setting). The estimate matches the true error closely while no cap is triggering. When caps trigger (very fast rates at few steps), it tends to overestimate, so the warning errs on the side of caution.
 
 ## 7. Summary metrics
 
@@ -164,9 +181,9 @@ Each scenario reports the following, computed from its daily results (days 0 to 
 | New infections | (S₀ − S_D) + (V₀ − V_D) | Infections that happen **during** the simulation. Every infection moves someone out of S or V, so this counts them exactly, including people still in E at the end. |
 | Cumulative infections | E₀ + I₀ + new infections | Everyone infected at any point, **including** the initially infected. (E₀ is always 0 in this app.) |
 | Attack rate | cumulative infections ÷ N | The fraction of the **whole population** ever infected. The denominator is N, not the number initially susceptible. Vaccinated people are included in N, so vaccination lowers the attack rate partly by making people immune. |
-| Infections averted | baseline new infections − scenario new infections | Compared with the "No intervention" scenario. All scenarios start with the same I₀, so it is the same whether new or cumulative infections are used. |
+| Infections averted (by last day) | baseline new infections − scenario new infections | Compared with the "No intervention" scenario. All scenarios start with the same I₀, so it is the same whether new or cumulative infections are used. **It counts only infections up to the last simulated day.** An intervention that merely delays infections (such as a contact reduction lifted later) can look far more effective in a short run than over the whole epidemic. For example, with R₀ = 3 and a 50% reduction for the first 40 days, a 60-day run shows about 465 infections averted, but a run long enough for the epidemic to finish shows about 3. The app warns whenever any scenario is still infected at the end. |
 | R₀, Rₑ at day 0 | §3 | Rₑ(0) is a snapshot at day 0, not over the whole run. |
-| Still spreading at end | E_D + I_D ≥ 1 person | If true, the simulation ended before the epidemic did, so infection totals are **incomplete**: run more days to see the final size. The 1-person threshold is needed because compartments approach 0 without ever reaching it. |
+| Still infected at end | E_D + I_D ≥ 1 person | If true, the simulation ended before the epidemic did, so infection totals and infections averted are **incomplete**: run more days to see the final size. It does not say whether infections are growing or shrinking. The 1-person threshold is needed because compartments approach 0 without ever reaching it. In this deterministic model, a flag of false does not strictly rule out later regrowth from a fraction of a person if Rₑ is above 1 (for example, right after a contact reduction ends). |
 
 ### Descriptive statistics of the infected curve
 

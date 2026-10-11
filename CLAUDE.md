@@ -22,7 +22,7 @@ uv venv -p 3.13 .venv && uv pip install -p .venv -r requirements-dev.txt   # or 
 - `disease_sim/` is the simulation package. **Only `interface.py` may import `streamlit`.** Everything else is pure Python so it can be tested without a browser.
 - Data flow: `parameters.py` frozen dataclasses (validated in `__post_init__`, including NaN/∞ rejection) → `models.simulate()` → a DataFrame with columns `day, S, E, I, R, V` (day 0 is the initial state; E is all zeros for SIR) → `metrics.summarize()` and `visualization.py`. `scenarios.run_scenarios()` runs several scenarios and returns the same columns plus `scenario` (long format).
 - SIR and SEIR share one engine in `models.simulate()`; `DiseaseParams.model` picks which. `simulate_sir()` is a Phase 1 alias.
-- Time stepping: forward Euler with `SimulationConfig.steps_per_day` steps per day (default 4; 1 is the legacy setting). Output is daily.
+- Time stepping: forward Euler with `SimulationConfig.steps_per_day` steps per day (default 4; 1 is the legacy setting). Output is daily. The app estimates numerical error by step doubling (`models.estimate_step_error`, rerun at 2× steps) and warns above `STEP_ERROR_TOLERANCE`.
 - Vaccination (`interventions.apply_vaccination`) runs once at day 0 and returns a susceptibility multiplier for V. It is 0 for all-or-nothing and `1 − effectiveness` for leaky. Both vaccine models share one code path through that multiplier.
 - Contact reduction multiplies β by `(1 − reduction)` for each step that starts in `[start_day, end_day)`.
 - `docs/MODEL.md` must describe exactly what the code implements. Update it with any change to equations, metrics, or assumptions.

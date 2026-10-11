@@ -5,12 +5,12 @@ disease parameters, so differences between them come only from the
 interventions.
 """
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 
 import pandas as pd
 
 from disease_sim.metrics import summarize
-from disease_sim.models import simulate
+from disease_sim.models import estimate_step_error, simulate
 from disease_sim.parameters import ContactReduction, DiseaseParams, SimulationConfig, Vaccination
 
 NO_INTERVENTION = "No intervention"
@@ -85,3 +85,24 @@ def summarize_scenarios(
     table["infections_averted"] = baseline - table["infections_during_simulation"]
     table.index.name = "scenario"
     return table
+
+
+def estimate_scenarios_step_error(
+    config: SimulationConfig,
+    disease: DiseaseParams,
+    scenarios: list[Scenario],
+    results: pd.DataFrame,
+) -> float:
+    """Largest step-doubling error estimate across the scenarios in `results`.
+
+    Reruns every scenario with twice `config.steps_per_day`.
+    """
+    finer = replace(config, steps_per_day=2 * config.steps_per_day)
+    fine = run_scenarios(finer, disease, scenarios)
+    return max(
+        estimate_step_error(
+            results[results["scenario"] == s.name].reset_index(drop=True),
+            fine[fine["scenario"] == s.name].reset_index(drop=True),
+        )
+        for s in scenarios
+    )

@@ -38,7 +38,7 @@ The app opens in your browser at http://localhost:8501. Controls:
 | Vaccine Effectiveness (%) | How well the vaccine works (meaning depends on the vaccine model) |
 | Vaccine Model | **Immunity**: that % of vaccinated people are fully immune. **Partial protection**: every vaccinated person's infection risk is reduced by that %. |
 | Contact Reduction (%) | Distancing or masking: lowers transmission by this % from the start day, optionally until an end day |
-| Simulation steps per day | Accuracy of the numerical solution: 4 by default, 1 reproduces the original app, 10 is most accurate |
+| Simulation steps per day | Accuracy of the numerical solution: 4 by default, 1 reproduces the original app, up to 50. The app estimates the numerical error and warns when more steps are needed. |
 
 The app shows the compartment curves for your settings, then compares four scenarios (**no intervention**, **vaccination only**, **contact reduction only**, **both**) in one chart and a summary table. The table lists peak infected and peak day; the mean, median, and standard deviation of daily infected counts; new and cumulative infections; attack rate; infections averted; and Rₑ at day 0.
 

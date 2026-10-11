@@ -3,7 +3,13 @@ import math
 
 import pytest
 
-from disease_sim.models import COMPARTMENTS, simulate, simulate_sir
+from disease_sim.models import (
+    COMPARTMENTS,
+    estimate_step_error,
+    simulate,
+    simulate_sir,
+    steps_for_tolerance,
+)
 from disease_sim.parameters import (
     LEGACY_STEPS_PER_DAY,
     DiseaseParams,
@@ -364,3 +370,56 @@ def test_no_outbreak_when_re_below_1(disease, vaccination, model):
     first, last = results.iloc[0], results.iloc[-1]
     new_infections = (first["S"] - last["S"]) + (first["V"] - last["V"])
     assert new_infections <= i0 * re / (1 - re) + 1e-9
+
+
+# --- Step-size error estimate ---------------------------------------------
+
+
+def _infected_curve_error(disease, steps):
+    """True error of the infected curve vs. a near-exact run, relative to the peak."""
+    reference = simulate(SimulationConfig(1000, 2, 200, 800), disease)
+    coarse = simulate(SimulationConfig(1000, 2, 200, steps), disease)
+    return (coarse["I"] - reference["I"]).abs().max() / reference["I"].max()
+
+
+@pytest.mark.parametrize(
+    "disease, steps",
+    [
+        (DiseaseParams(0.05, 0.03), 4),
+        (DiseaseParams(0.5, 0.03), 4),
+        (DiseaseParams.from_r0(3, 2), 10),
+        (DiseaseParams.from_r0(4, 1), 20),
+        (DiseaseParams(0.3, 0.1, 0.2, ModelType.SEIR), 1),
+    ],
+)
+def test_step_doubling_estimate_tracks_true_error(disease, steps):
+    coarse = simulate(SimulationConfig(1000, 2, 200, steps), disease)
+    fine = simulate(SimulationConfig(1000, 2, 200, 2 * steps), disease)
+    true_error = _infected_curve_error(disease, steps)
+    assert estimate_step_error(coarse, fine) == pytest.approx(true_error, rel=0.15, abs=0.002)
+
+
+@pytest.mark.parametrize(
+    "disease",
+    [DiseaseParams.from_r0(4, 1), DiseaseParams.from_r0(10, 1), DiseaseParams(0.5, 0.03)],
+)
+def test_recommended_steps_reach_the_tolerance(disease):
+    # Fast rates at 4 steps/day give a large error; the recommended step count
+    # (rounded up to a step count the app offers) brings it within 5%.
+    coarse = simulate(SimulationConfig(1000, 2, 200, 4), disease)
+    fine = simulate(SimulationConfig(1000, 2, 200, 8), disease)
+    error = estimate_step_error(coarse, fine)
+    assert error > 0.05
+    needed = steps_for_tolerance(4, error)
+    offered = min(k for k in (1, 4, 10, 20, 50) if k >= min(needed, 50))
+    assert _infected_curve_error(disease, offered) < 0.05
+
+
+def test_step_error_is_zero_without_infection():
+    flat = simulate(SimulationConfig(1000, 0, 10), DiseaseParams(0.3, 0.1))
+    assert estimate_step_error(flat, flat) == 0.0
+
+
+def test_steps_for_tolerance():
+    assert steps_for_tolerance(4, 0.075) == 6
+    assert steps_for_tolerance(4, 0.01) == 1

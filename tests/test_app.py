@@ -184,3 +184,38 @@ def test_reduction_starting_on_the_last_day_cannot_be_lifted(simulations):
     assert "Reduction ends on day" not in [s.label for s in app.slider]
     contact = simulations[-1]["scenarios"][CONTACT_REDUCTION_ONLY].contact_reduction
     assert (contact.start_day, contact.end_day) == (29, None)
+
+
+def _warnings(app):
+    return [w.value for w in app.warning]
+
+
+def test_step_size_warning_for_fast_rates():
+    app = _app()
+    assert not any("Numerical error" in w for w in _warnings(app))
+
+    _radio(app, "Disease Input").set_value(interface.R0_INPUT).run()
+    _slider(app, "R₀").set_value(4.0).run()
+    _slider(app, "Mean infectious period (days)").set_value(1.0).run()
+    warning = next(w for w in _warnings(app) if "Numerical error" in w)
+    assert "Choose at least 50 steps per day" in warning
+
+    app.selectbox[0].set_value(50).run()
+    assert not app.exception
+    assert not any("Numerical error" in w for w in _warnings(app))
+
+
+def test_unfinished_epidemic_warning():
+    app = _app()  # Phase 1 defaults: the outbreak is still growing on day 30
+    assert interface.UNFINISHED_WARNING in _warnings(app)
+    assert app.dataframe[0].value["Still infected at end"].all()
+
+    # R0 = 3 runs its course well within 200 days; with 80% coverage R_e = 0.6
+    # and the initial cases die out. No scenario is still infected at the end.
+    _slider(app, "Infection Rate").set_value(0.3).run()
+    _slider(app, "Recovery Rate").set_value(0.1).run()
+    _slider(app, "Days").set_value(200).run()
+    _slider(app, "Vaccinated (%)").set_value(80).run()
+    assert not app.exception
+    assert not app.dataframe[0].value["Still infected at end"].any()
+    assert interface.UNFINISHED_WARNING not in _warnings(app)

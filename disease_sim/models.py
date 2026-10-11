@@ -14,6 +14,8 @@ leaves one compartment and enters another, so S + E + I + R + V = N exactly
 (up to floating-point rounding).
 """
 
+import math
+
 import pandas as pd
 
 from disease_sim.interventions import apply_vaccination, contact_multiplier
@@ -26,6 +28,30 @@ from disease_sim.parameters import (
 )
 
 COMPARTMENTS = ["S", "E", "I", "R", "V"]
+
+# Largest acceptable estimated error, relative to the peak (see estimate_step_error).
+STEP_ERROR_TOLERANCE = 0.05
+
+
+def estimate_step_error(coarse: pd.DataFrame, fine: pd.DataFrame) -> float:
+    """Estimated error of `coarse`'s infected curve, relative to its peak.
+
+    `fine` must be the same simulation with twice the steps per day. Forward
+    Euler's error is roughly proportional to the step, so the coarse run's
+    error is about twice its difference from the fine run ("step doubling").
+    Returns the largest daily difference, doubled, divided by the peak.
+    """
+    peak = fine["I"].max()
+    if peak == 0:
+        return 0.0
+    return float(2 * (coarse["I"] - fine["I"]).abs().max() / peak)
+
+
+def steps_for_tolerance(
+    steps_per_day: int, estimated_error: float, tolerance: float = STEP_ERROR_TOLERANCE
+) -> int:
+    """Approximate steps per day needed to bring the error within `tolerance`."""
+    return max(1, math.ceil(steps_per_day * estimated_error / tolerance))
 
 
 def simulate(

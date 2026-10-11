@@ -20,10 +20,14 @@ uv venv -p 3.13 .venv && uv pip install -p .venv -r requirements-dev.txt   # or 
 
 - `main.py` is only the Streamlit entry point. It calls `disease_sim.interface.run()`. Keep the name: Streamlit Community Cloud deployment is configured to use it.
 - `disease_sim/` is the simulation package. **Only `interface.py` may import `streamlit`.** Everything else is pure Python so it can be tested without a browser.
-- Data flow: `parameters.py` dataclasses (validated in `__post_init__`) → `models.simulate_sir()` → a DataFrame with columns `day, S, I, R, V` (day 0 is the initial state) → `visualization.py` builds a figure from that DataFrame.
+- Data flow: `parameters.py` frozen dataclasses (validated in `__post_init__`, including NaN/∞ rejection) → `models.simulate()` → a DataFrame with columns `day, S, E, I, R, V` (day 0 is the initial state; E is all zeros for SIR) → `metrics.summarize()` and `visualization.py`. `scenarios.run_scenarios()` runs several scenarios and returns the same columns plus `scenario` (long format).
+- SIR and SEIR share one engine in `models.simulate()`; `DiseaseParams.model` picks which. `simulate_sir()` is a Phase 1 alias.
+- Time stepping: forward Euler with `SimulationConfig.steps_per_day` steps per day (default 4; 1 is the legacy setting). Output is daily. The app estimates numerical error by step doubling (`models.estimate_step_error`, rerun at 2× steps) and warns above `STEP_ERROR_TOLERANCE`.
 - Vaccination (`interventions.apply_vaccination`) runs once at day 0 and returns a susceptibility multiplier for V. It is 0 for all-or-nothing and `1 − effectiveness` for leaky. Both vaccine models share one code path through that multiplier.
+- Contact reduction multiplies β by `(1 − reduction)` for each step that starts in `[start_day, end_day)`.
+- `docs/MODEL.md` must describe exactly what the code implements. Update it with any change to equations, metrics, or assumptions.
 
 ## Invariants the tests enforce
 
-- With no vaccination, SIR output must match the original `main.py` loop (copied into `tests/test_models.py`) to within 1e-9. Do not change the update rule (forward Euler, 1-day step) without updating that test deliberately.
-- S + I + R + V = N on every day, and no compartment goes negative, including at rates far above the slider limits. Each flow is capped at the size of its source compartment to guarantee this.
+- With no vaccination and `steps_per_day=1`, SIR output must match the original `main.py` loop (copied into `tests/test_models.py`) to within 1e-9. Do not change the update rule (forward Euler, simultaneous update) without updating that test deliberately.
+- S + E + I + R + V = N on every day, and no compartment goes negative, including at rates far above the slider limits. Each flow is capped at the size of its source compartment to guarantee this.

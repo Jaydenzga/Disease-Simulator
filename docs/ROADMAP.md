@@ -1,6 +1,6 @@
 # Disease Simulator — Implementation Roadmap
 
-Status: **Approved 2026-10-10.** Decisions are recorded at the end of this document.
+Status: **Approved 2026-10-10.** Phase 1 complete. Phase 2 implemented on `feature/phase-2-seir`. Decisions are recorded at the end of this document.
 Owner: Jayden (approves architecture and features) · Lead engineer: Claude Code
 
 This document is the plan for turning the single-file Streamlit SIR demo (`main.py`) into a tested, documented, deployable epidemiological simulation app.
@@ -101,7 +101,7 @@ dI/dt =  β · S · I / N − γ · I
 dR/dt =  γ · I
 ```
 
-**SEIR** (new): adds an Exposed (infected but not yet infectious) compartment with incubation rate σ = 1 / mean incubation period.
+**SEIR** (new): adds an Exposed (infected but not yet infectious) compartment with progression rate σ = 1 / mean latent period.
 
 ```
 dS/dt = −β · S · I / N
@@ -118,13 +118,13 @@ dR/dt =  γ · I
 | I₀ | Initially infectious | Initial infected | 2 |
 | β | Transmission rate (per day) | Infection rate | 0.05 *(matches current app)* |
 | γ | Recovery rate (per day) = 1 / infectious period | Recovery rate | 0.03 *(matches current app)* |
-| σ | Incubation rate (per day) = 1 / latent period | Incubation period (days), SEIR only | 5 days |
+| σ | Progression rate E → I (per day) = 1 / mean latent period | Mean latent period (days), SEIR only | 5 days |
 | R₀ | β / γ, shown as a derived value | Display only | — |
 
 ### 4.2 Numerical method
 
 - Fixed-step **forward Euler** with step `dt` (default **1 day**). This is the same update the current app uses, so with default settings the refactored SIR gives the **same numbers as the original `main.py`** (enforced by a regression test).
-- An optional "sub-steps per day" setting (1, 4, 10) lets users trade speed for accuracy. Output is still reported once per day.
+- A "steps per day" setting (1, 4, 10; default 4) lets users trade speed for accuracy. 1 step per day is the legacy setting that matches the original app. Output is still reported once per day.
 - **Nonnegativity guard:** with large rates, a plain Euler step can push a compartment below zero. Each step limits every flow to what is in its source compartment (for example, new infections ≤ S). Every flow is subtracted from one compartment and added to another, so the total population stays exactly the same even when a flow is limited. Tests check this directly (§6).
 
 ### 4.3 Vaccination (fixes the current bug)
@@ -159,7 +159,7 @@ dR/dt =  γ · I
 
 ### 4.6 Summary metrics (per scenario)
 
-Peak infectious count and the day it happens, total ever infected (attack rate as a % of N), final susceptible, R₀, Rₑ at t = 0, and infections averted compared with the baseline.
+Peak infectious count and the day it happens; mean, median, and SD of the daily infectious counts (descriptive statistics only); infections during the simulation and cumulative infections including the initially infected; attack rate (cumulative infections ÷ N); R₀; Rₑ at t = 0; infections averted compared with the baseline; and whether anyone is still infected at the end. Exact definitions are in MODEL.md §7.
 
 ### 4.7 Stated assumptions and limitations (written up in MODEL.md)
 
@@ -193,33 +193,39 @@ Acceptance criteria
 ### Phase 2 — Expand the science
 
 Tasks
-1. Add SEIR to `models.py` with a shared `simulate(model="SIR" | "SEIR", ...)` API.
-2. Add incubation period control. Infection and recovery rates are already configurable. Add an option to enter them as **R₀ + infectious period** instead of raw rates (clinicians tend to think in those terms), and convert between the two.
-3. Add sub-step `dt` support (§4.2).
+1. Add SEIR to `models.py` with one shared engine for SIR and SEIR (`simulate(...)`; the model is chosen by `DiseaseParams.model`).
+2. Add a **mean latent period** control (SEIR only). Infection and recovery rates are already configurable. Add an option to enter them as **R₀ + mean infectious period** instead of raw rates, and convert between the two.
+3. Add sub-step `dt` support (§4.2): **4 steps per day by default**, with 1 step per day kept as a selectable legacy setting.
 4. Add contact reduction (§4.4).
-5. Add `scenarios.py` and `metrics.py` (§4.5–4.6).
-6. Write `docs/MODEL.md` with equations, a parameter table, the numerical method, the vaccination model, assumptions, limitations, and references (Kermack–McKendrick 1927; Keeling & Rohani, *Modeling Infectious Diseases*, 2008).
+5. Add `scenarios.py` and `metrics.py` (§4.5–4.6), including descriptive statistics of the infected curve (mean, median, SD, peak and peak day).
+6. Reject NaN and infinite inputs everywhere.
+7. Basic Streamlit controls for the new features, a four-scenario comparison chart, and a summary table (matplotlib; polishing waits for Phase 3).
+8. Write `docs/MODEL.md` with equations, a parameter table, the numerical method, the vaccination model, metric definitions, assumptions, limitations, and references (Kermack–McKendrick 1927; Keeling & Rohani, *Modeling Infectious Diseases*, 2008).
 
 Acceptance criteria
-- [ ] SEIR conserves N and stays nonnegative for all slider combinations (property-style test over a parameter grid).
-- [ ] **Analytic check:** for SIR with small `dt`, the final epidemic size matches the Kermack–McKendrick final-size equation `z = 1 − exp(−R₀ · z)` (adjusted for initial conditions) to within 1%.
-- [ ] **SEIR → SIR limit:** with a very short incubation period (σ large), SEIR results approach SIR results.
-- [ ] **Threshold behavior:** when Rₑ < 1, infections decline from day 0 (no outbreak).
-- [ ] Given the same disease parameters, vaccination and contact reduction with no end day each give lower or equal peak and total infections than baseline. (A contact reduction that ends early can cause a rebound, so it is tested separately: the run must still conserve N, and the rebound is described in MODEL.md.)
-- [ ] `MODEL.md` documents every equation and assumption the code implements, and nothing more.
+- [x] SEIR conserves N and stays nonnegative over a parameter grid that includes rates beyond the slider limits.
+- [x] **Analytic check:** with 10 steps per day, the final epidemic size of SIR **and SEIR** matches the Kermack–McKendrick final-size equation to within 1%.
+- [x] **SEIR → SIR limit:** as the latent period shrinks, the gap between SEIR and SIR shrinks steadily.
+- [x] **Threshold behavior:** when Rₑ(0) < 1, total new infections stay below the generation-sum bound I₀ · Rₑ / (1 − Rₑ), for both models. In SIR, I also falls from day 0. (SEIR's E + I is not assumed to fall immediately.)
+- [x] Given the same disease parameters, vaccination and contact reduction with no end day each give lower or equal peak and total infections than baseline. A contact reduction that ends early is tested separately: the run still conserves N, the rebound occurs, and MODEL.md describes it.
+- [x] With 1 step per day, SIR still matches the original `main.py` within 1e-9.
+- [x] NaN and ±∞ are rejected for every numeric input with a `ValueError` naming the field.
+- [x] `MODEL.md` documents every equation, metric, and assumption the code implements, and nothing more.
 
-### Phase 3 — Interface
+### Phase 3 — Advanced interactive dashboard (Plotly and statistical visualizations)
 
 Tasks
 1. Switch charts to Plotly: compartment curves with hover tooltips, a scenario overlay chart (infectious curves from all scenarios on one plot), and an optional log-scale toggle.
-2. Dashboard layout:
-   - **Sidebar:** model choice (SIR/SEIR), population and disease parameters, interventions, simulation length.
+2. Statistical visualizations of the Phase 2 descriptive statistics: for example, the mean and median drawn as reference lines on the infected curve, a distribution view (histogram or box plot) of the daily infected counts per scenario, and a side-by-side comparison of scenario metrics. Each is labeled as a description of a deterministic curve, not an uncertainty estimate.
+3. Dashboard layout:
+   - **Sidebar:** model choice (SIR/SEIR), population and disease parameters, interventions, simulation length, steps per day.
    - **Tab "Simulation":** metric cards (R₀, Rₑ, peak, peak day, attack rate), the compartment chart, and a short plain-language summary ("The epidemic peaks on day 42 with 312 people infectious…").
    - **Tab "Compare scenarios":** preset editor, overlay chart, and a comparison table with infections averted.
+   - **Tab "Statistics":** the descriptive-statistics views from task 2.
    - **Tab "Data":** results table and **Download CSV** buttons (single run and all scenarios in long format).
    - **Tab "About the model":** shows the content of `MODEL.md`.
-3. Cache simulation results with `st.cache_data` so the app stays responsive while sliders move.
-4. Drop matplotlib from dependencies.
+4. Cache simulation results with `st.cache_data` so the app stays responsive while sliders move.
+5. Drop matplotlib from dependencies.
 
 Acceptance criteria
 - [ ] All charts are Plotly with working hover, zoom, and legend toggling.
@@ -228,22 +234,50 @@ Acceptance criteria
 - [ ] The layout is usable at narrow (mobile) widths.
 - [ ] `visualization.py` functions have tests confirming expected traces and axis labels.
 
-### Phase 4 — Quality and deployment
+### Phase 4 — Deployment and real-user testing
 
 Tasks
 1. Complete the test suite (see §6). Target ≥ 90% line coverage of `disease_sim/` excluding `interface.py`.
-2. Add a Streamlit UI smoke test using `streamlit.testing.v1.AppTest`: the app loads without exceptions and changing a slider reruns cleanly.
-3. Add `ruff` linting and formatting.
-4. Add a GitHub Actions workflow `.github/workflows/tests.yml`: runs on push and PR, uses a Python version matrix, installs dev requirements, runs `ruff check` and `pytest`.
-5. Prepare for Streamlit Cloud: add `.streamlit/config.toml`, check that `requirements.txt` at the repo root is complete, and test a clean install in a new virtualenv.
-6. README additions: CI badge, screenshot or GIF, live-app link placeholder, project structure, model summary linking to MODEL.md, how to run tests.
-7. Update `CLAUDE.md` to match the new architecture.
+2. Extend the Streamlit UI smoke tests (`streamlit.testing.v1.AppTest`) to every tab.
+3. Add a GitHub Actions workflow `.github/workflows/tests.yml`: runs on push and PR, uses a Python version matrix, installs dev requirements, runs `ruff check`, `ruff format --check`, and `pytest`.
+4. Prepare for Streamlit Cloud: add `.streamlit/config.toml`, check that `requirements.txt` at the repo root is complete, and test a clean install in a new virtualenv.
+5. README additions: CI badge, screenshot or GIF, live-app link, project structure, model summary linking to MODEL.md, how to run tests.
+6. **Real-user testing:** after deployment, a few people (e.g. classmates) use the live app with a short task list ("find the vaccination coverage that keeps Rₑ below 1", "compare the four scenarios") and a feedback form. Record confusing labels, errors, and slow interactions, and fix the most important ones.
+7. Update `CLAUDE.md` to match the final architecture.
 
 Acceptance criteria
 - [ ] `pytest` passes locally and in CI. CI shows green on `main`.
 - [ ] `ruff check .` passes.
 - [ ] The app starts from a fresh clone using only the README instructions.
 - [ ] Deployment checklist in the README is complete. **The actual deploy is done by you** at share.streamlit.io: sign in with GitHub, select `Jaydenzga/Disease-Simulator`, branch `main`, entry file `main.py`. I can't perform that step, but I'll make sure nothing else is needed.
+- [ ] Feedback from at least a few real users is collected, summarized, and the top issues are fixed or logged.
+
+### Phase 4.5 — Code and Architecture Bootcamp
+
+A structured study of the finished, deployed repository, done together after Phase 4. No new features.
+
+Topics
+1. Python modules and how the package is organized; why only `interface.py` imports Streamlit.
+2. The data flow from sliders → validated dataclasses → simulation engine → DataFrame → metrics → charts.
+3. The mathematical models (SIR, SEIR, vaccination, contact reduction) and how the equations become code.
+4. Algorithms: forward Euler, step size and accuracy, flow capping, conservation.
+5. Data structures: frozen dataclasses, enums, DataFrames in wide and long format.
+6. The test suite: regression, property-style grids, analytic checks, hand calculations, UI tests.
+7. Software architecture and engineering practice: validation, git workflow, CI, deployment.
+
+### Phase 5 — Statistical Epidemiology Lab
+
+Connects the simulator to Behavioral Statistics (PSY 2301) concepts. **Not started; to be planned and approved before implementation.**
+
+Planned topics
+1. **Stochastic simulation:** a random (e.g. chain-binomial) version of the model where each run differs, so outcomes have genuine variability and small outbreaks can die out by chance.
+2. **Probability distributions:** distributions of outcomes across many runs (peak size, final size, outbreak extinction); comparing exponential and more realistic waiting-time distributions.
+3. **z-scores:** how unusual one run's outcome is relative to the distribution of many runs.
+4. **Hypothesis testing:** for example, whether an intervention significantly changes final size across repeated stochastic runs, with a discussion of what significance does and does not mean for simulated data.
+
+### Optional future phase — Graph-based disease transmission
+
+Model the population as a contact network (a graph whose nodes are people and edges are contacts), applying Data Structures & Algorithms and Discrete Mathematics: graph representations, breadth-first spread, degree distributions, and how network structure (clusters, hubs) changes outbreaks compared with homogeneous mixing. **Not started; scope to be decided later.**
 
 ---
 
@@ -254,10 +288,10 @@ Acceptance criteria
 | **Conservation** | For SIR and SEIR, with and without vaccination or contact reduction, over a grid of parameters (including extreme rates near slider maxima and dt = 1): `abs(S+E+I+R+V − N) < 1e-9 · N` every day. |
 | **Nonnegativity** | Same grid: every compartment ≥ 0 every day, including at maximum β and γ where a plain Euler step would overshoot. |
 | **Regression** | SIR with no vaccination matches the original `main.py` loop exactly (the original loop is copied into the test as a reference). |
-| **Analytic** | SIR final size vs. Kermack–McKendrick; Rₑ < 1 means no growth; I₀ = 0 means nothing changes; β = 0 means only recovery. |
-| **Model relationships** | SEIR approaches SIR as incubation → 0; more vaccination coverage never increases total infections; 100% coverage × 100% effectiveness means no new infections. |
-| **Validation** | Invalid parameters (negative rates, I₀ > N, effectiveness > 1, etc.) raise `ValueError` with clear messages. |
-| **Metrics** | Peak and attack rate are correct on hand-built DataFrames. |
+| **Analytic** | SIR and SEIR final size vs. Kermack–McKendrick; Rₑ < 1 bounds total infections; I₀ = 0 means nothing changes; β = 0 means only recovery; more steps per day means smaller error. |
+| **Model relationships** | SEIR approaches SIR as the latent period → 0; more vaccination coverage never increases total infections; 100% coverage × 100% effectiveness means no new infections. |
+| **Validation** | Invalid parameters (negative rates, I₀ > N, effectiveness > 1, NaN, ±∞, etc.) raise `ValueError` with clear messages. |
+| **Metrics** | Peak, peak day, mean, median, SD, new vs. cumulative infections, attack rate, and Rₑ(0) are correct on hand-built DataFrames. |
 | **Visualization** | Figure builders return Plotly figures with the expected trace names. |
 | **UI smoke** | `AppTest` loads `main.py` with no exceptions, and every tab renders. |
 
@@ -265,7 +299,7 @@ Acceptance criteria
 
 ## 7. Out of scope (possible future work)
 
-Disease deaths (SEIRD), waning immunity or reinfection (SEIRS), vaccination rollout over time, age-structured or network models, stochastic (Gillespie or chain-binomial) simulation, fitting to real case data. Your TODO mentions reinfection and deaths. These fit the architecture cleanly as new compartments and can be a Phase 5 if you want them.
+Disease deaths (SEIRD), waning immunity or reinfection (SEIRS), vaccination rollout over time, age-structured models, fitting to real case data. Your TODO mentions reinfection and deaths. These fit the architecture cleanly as new compartments. Stochastic simulation is planned for Phase 5 and network models for the optional graph-based phase.
 
 ---
 
@@ -276,3 +310,13 @@ Disease deaths (SEIRD), waning immunity or reinfection (SEIRS), vaccination roll
 3. **Numerical method:** forward Euler with daily output and optional sub-steps. No SciPy.
 4. **Git workflow:** one feature branch and PR per phase. The uncommitted `main.py` is committed first as the baseline.
 5. **Scope:** contact reduction is included as the second intervention type.
+
+## Phase 2 decisions (approved 2026-10-10)
+
+1. **Steps per day:** 4 by default; 1 step per day stays selectable as the legacy setting that reproduces Phase 1.
+2. **Terminology:** "Mean latent period (days)", not "incubation period" (E models infected-but-not-infectious, not symptom onset).
+3. **Threshold claim:** Rₑ < 1 bounds total infections; it is not assumed that SEIR's E + I falls immediately.
+4. **Infection counts:** infections during the simulation are reported separately from cumulative infections (which include the initially infected). Attack rate = cumulative infections ÷ N.
+5. **Statistics (PSY 2301):** mean, median, population SD, peak and peak day of the daily infected counts, documented as descriptive statistics of a deterministic series. Advanced statistics wait for Phase 5.
+6. **Interface:** basic controls, a four-scenario chart, and a summary table in Phase 2; the polished Plotly dashboard waits for Phase 3.
+7. **Roadmap additions:** Phase 3 adds statistical visualizations, Phase 4 adds real-user testing, and Phase 4.5 (bootcamp), Phase 5 (Statistical Epidemiology Lab), and an optional graph-based phase are added.

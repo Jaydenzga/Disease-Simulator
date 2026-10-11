@@ -1,6 +1,6 @@
 # Disease Simulator — Implementation Roadmap
 
-Status: **Approved 2026-10-10.** Phases 1 and 2 complete. Phase 3 implemented on `feature/phase-3-dashboard`. Decisions are recorded at the end of this document.
+Status: **Approved 2026-10-10.** Phases 1–3 complete. Disease presets added on `feature/disease-presets`. Decisions are recorded at the end of this document.
 Owner: Jayden (approves architecture and features) · Lead engineer: Claude Code
 
 This document is the plan for turning the single-file Streamlit SIR demo (`main.py`) into a tested, documented, deployable epidemiological simulation app.
@@ -329,3 +329,10 @@ Disease deaths (SEIRD), waning immunity or reinfection (SEIRS), vaccination roll
 4. **Tabs:** Simulation, Compare, Statistics, Data, About, with a status area above them that always shows the numerical-error estimate and unfinished outbreaks.
 5. **Log scale:** values below 0.01 people (including zeros) are not drawn on log axes, and the chart says how many were left out.
 6. **Accessibility:** a categorical palette checked for colorblind separation, plus a distinct line pattern for each series.
+
+## Disease presets (requested 2026-10-11)
+
+1. **Scope:** a "Disease preset" menu in the sidebar's Disease group fills in R₀, the mean infectious period, and the mean latent period for COVID-19 (original strain and Delta), seasonal and 1918 influenza, measles, and chickenpox. The default stays **Custom**, so the approved Phase 3 defaults are unchanged.
+2. **Model choice is kept:** a preset changes only disease values, not SIR/SEIR, the population, or the interventions.
+3. **Slider ranges widened:** R₀ up to 20 (was 10) and β up to 3 per day (was 2), so measles fits.
+4. **Values are rounded published estimates, not fits.** MODEL.md §2 lists them with sources and limitations.

@@ -23,9 +23,9 @@ PARAMETER_HELP = {
     "initial_infected": "People who are already infectious on day 0.",
     "days": "How many days to simulate. Results are reported once per day.",
     "preset": (
-        "Fill in R₀ and the infectious and latent periods with typical published values "
-        "for a well-known infection. Moving any disease slider afterwards switches back "
-        "to Custom."
+        "Fill in R₀ and the infectious and latent periods with rounded, typical published "
+        "values for a well-known infection. These are educational approximations, not "
+        "forecasts. Moving any disease slider afterwards switches back to Custom."
     ),
     "input_mode": (
         "Describe the disease by its rates, or by R₀ and how long people stay infectious."
@@ -192,8 +192,9 @@ def preset_caption(preset: DiseasePreset) -> str:
     return (
         f"R₀ {preset.r0:g} (published estimates {preset.r0_range}), infectious for "
         f"{preset.infectious_period:g} days, latent for {preset.latent_period:g} days. "
-        "Typical values, rounded; the model still has no deaths, prior immunity, or "
-        "differences between people."
+        "Educational approximation, not a forecast: rounded typical values, and the model "
+        "still has no deaths, prior immunity, or differences between people. Sources are "
+        "in the About tab."
     )
 
 

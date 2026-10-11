@@ -59,7 +59,9 @@ The app opens in **SEIR** mode and takes the disease as **R₀ and mean infectio
 
 ### Disease presets
 
-The **Disease preset** menu fills in R₀ and the mean infectious and latent periods with rounded values typical of published estimates. It does not change the model (SIR or SEIR), the population, or the interventions. SIR ignores the latent period. Moving any disease slider afterwards sets the menu back to **Custom**.
+> **Educational approximations, not forecasts.** Each preset is a rounded, typical value taken from published estimates so that the model behaves roughly like the named disease. None is fitted to an outbreak, and none predicts what a real outbreak would do.
+
+The **Disease preset** menu fills in R₀ and the mean infectious and latent periods. It does not change the model (SIR or SEIR), the population, or the interventions. SIR ignores the latent period. Moving any disease slider afterwards sets the menu back to **Custom**; choosing **Custom** keeps the current values.
 
 | Preset | R₀ | Published R₀ estimates | Infectious period D | Latent period |
 |---|---|---|---|---|
@@ -70,11 +72,41 @@ The **Disease preset** menu fills in R₀ and the mean infectious and latent per
 | Measles | 15 | about 12–18 | 5 days | 8 days |
 | Chickenpox | 10 | about 7–12 | 7 days | 14 days |
 
-R₀ values follow Liu et al. (2020) and Liu & Rocklöv (2021) for COVID-19, Biggerstaff et al. (2014) for influenza, and Anderson & May (1991) and Keeling & Rohani (2008) for measles and chickenpox. The periods are rounded values of the kind used in teaching models. They are not fitted to data. Keep in mind:
+#### Four quantities that are easy to confuse
 
-- Published estimates vary by place, time, and method. One number cannot describe a disease.
-- The model still applies its own assumptions (§10). It has no deaths, which matters for the 1918 influenza. Everyone starts susceptible, but real seasonal influenza meets partial prior immunity. People mix equally, and waiting times are exponential, so the presets show how each disease behaves *in this model*. They are not predictions.
-- High-R₀ presets (measles, Delta) need more steps per day to stay within the step-error tolerance (§6). The status area says when.
+| Quantity | Meaning | In this model |
+|---|---|---|
+| **Basic reproduction number R₀** | Average number of people one infectious person infects when **everyone else is susceptible** and nobody is changing behavior. It describes a disease *in a particular population*, not the virus alone. | β / γ. Set by the R₀ slider or the preset. |
+| **Effective reproduction number Rₑ** | The same average **at a given time**, after immunity (from infection or vaccination) and interventions have reduced transmission. Rₑ < 1 means the outbreak shrinks. | Shown as "Rₑ at day 0" (§3). It then falls as S is used up. |
+| **Latent period** | Time from infection until a person can **infect others**. | Mean time in E, 1/σ (SEIR only). |
+| **Infectious period** | How long a person **can infect others**. | Mean time in I, D = 1/γ. |
+
+The **incubation period** (infection to symptoms) is a fifth quantity that the model does not use. It is what most clinical sources report. When infectiousness starts before symptoms, as for COVID-19, measles, and chickenpox, the latent period is shorter than the incubation period.
+
+Many published "R₀" values are really effective reproduction numbers measured in partly immune populations. This matters most for **seasonal influenza**: most people already have some immunity, so the 1.3 preset describes the start of a typical flu season, not influenza in a population that has never met it. The model starts with everyone susceptible, so it treats this as R₀.
+
+#### What the values are based on
+
+Sources were checked on 2026-10-11. Full references with links are at the end of this document.
+
+| Preset | Evidence | How the preset compares |
+|---|---|---|
+| COVID-19 (original) | Review of early estimates: mean R₀ 3.28, median 2.79 (Liu et al., 2020). Incubation period median 5.1 days (Lauer et al., 2020). Infectiousness starts about 2.3 days before symptoms and declines within about 7 days after (He et al., 2020). | R₀ 2.5 is at the low end of the central estimates. Latent 3 days ≈ 5.1 − 2.3. Infectious 5 days is a common modeling value. |
+| COVID-19 (Delta) | Mean R₀ 5.08, range 3.2–8 (Liu & Rocklöv, 2021). Incubation period about 4.4 days (Wu et al., 2022). | R₀ 5 matches the mean. Latent 2 days assumes infectiousness starts about 2 days before symptoms, as for the original strain. |
+| Seasonal influenza | Median reproduction number 1.28, interquartile range 1.19–1.37 (Biggerstaff et al., 2014). Incubation period median 1.4 days for influenza A (Lessler et al., 2009). | R₀ 1.3 matches the median. The 2-day latent period is longer than the 1.4-day median incubation period, so it is on the long side. |
+| 1918 pandemic influenza | Median 1.80, interquartile range 1.47–2.27 (Biggerstaff et al., 2014). | R₀ 2 is inside the interquartile range, a little above the median. |
+| Measles | 12–18 is the most often quoted range, with some estimates well outside it (Anderson & May, 1991; Guerra et al., 2017). Incubation about 11–12 days to first symptoms; infectious from 4 days before to 4 days after rash onset (CDC). | R₀ 15 is the middle of the usual range. The CDC timings suggest a latent period of about 10 days and an infectious period of about 8–9 days, longer than the preset's 8 and 5. |
+| Chickenpox | 7–12 in historical US and UK data (Anderson & May, 1991); 2.8–7.6 from serology in 12 European countries (Santermans et al., 2015). Incubation 14–16 days; infectious from 1–2 days before rash until lesions crust, usually about 5 days after (CDC). | R₀ 10 follows the older range; modern European estimates are lower. Latent 14 days and infectious 7 days follow the CDC timings. |
+
+#### Why one number cannot describe a disease
+
+- **Variants.** New variants can transmit more easily or progress faster. Delta's R₀ was about twice the original strain's, and incubation periods shortened from strain to strain.
+- **Population and contacts.** R₀ is contacts per day × chance of transmission per contact × duration. Crowded housing, large households, school terms, and age structure change the number of contacts, so the same pathogen has different R₀ values in different places and years.
+- **Immunity.** Previous infection and vaccination lower Rₑ, not R₀. Use the vaccination controls to explore this instead of lowering R₀.
+- **Environment and season.** Climate, indoor crowding, and ventilation change transmission; influenza is strongly seasonal, which the model leaves out.
+- **Behavior and measurement.** People change behavior during outbreaks, and estimates depend on the data and method used, so estimates of the "same" quantity disagree.
+
+The model still applies its own assumptions (§10). It has no deaths, which matters for the 1918 influenza. People mix equally, and waiting times are exponential, so the presets show how each disease behaves *in this model*. High-R₀ presets (measles, Delta) need more steps per day to stay within the step-error tolerance (§6); the status area says when.
 
 ### Mean periods and exponential waiting times
 
@@ -260,9 +292,19 @@ The dashboard displays the quantities defined above without changing them. A few
 
 ## References
 
-- Anderson, R. M., & May, R. M. (1991). *Infectious Diseases of Humans: Dynamics and Control*. Oxford University Press.
-- Biggerstaff, M., Cauchemez, S., Reed, C., Gambhir, M., & Finelli, L. (2014). Estimates of the reproduction number for seasonal, pandemic, and zoonotic influenza: a systematic review of the literature. *BMC Infectious Diseases*, 14, 480.
-- Kermack, W. O., & McKendrick, A. G. (1927). A contribution to the mathematical theory of epidemics. *Proceedings of the Royal Society of London, Series A*, 115(772), 700–721.
+Links checked on 2026-10-11.
+
+- Anderson, R. M., & May, R. M. (1991). *Infectious Diseases of Humans: Dynamics and Control*. Oxford University Press. (R₀ table, p. 70.)
+- Biggerstaff, M., Cauchemez, S., Reed, C., Gambhir, M., & Finelli, L. (2014). Estimates of the reproduction number for seasonal, pandemic, and zoonotic influenza: a systematic review of the literature. *BMC Infectious Diseases*, 14, 480. https://doi.org/10.1186/1471-2334-14-480
+- Centers for Disease Control and Prevention. Measles clinical diagnosis fact sheet. https://www.cdc.gov/measles/hcp/communication-resources/clinical-diagnosis-fact-sheet.html
+- Centers for Disease Control and Prevention. *Pink Book*, Chapter 22: Varicella. https://www.cdc.gov/pinkbook/hcp/table-of-contents/chapter-22-varicella.html
+- Guerra, F. M., Bolotin, S., Lim, G., Heffernan, J., Deeks, S. L., Li, Y., & Crowcroft, N. S. (2017). The basic reproduction number (R₀) of measles: a systematic review. *The Lancet Infectious Diseases*, 17(12), e420–e428. https://doi.org/10.1016/S1473-3099(17)30307-9
+- He, X., Lau, E. H. Y., Wu, P., et al. (2020). Temporal dynamics in viral shedding and transmissibility of COVID-19. *Nature Medicine*, 26, 672–675. https://doi.org/10.1038/s41591-020-0869-5
+- Kermack, W. O., & McKendrick, A. G. (1927). A contribution to the mathematical theory of epidemics. *Proceedings of the Royal Society of London, Series A*, 115(772), 700–721. https://doi.org/10.1098/rspa.1927.0118
 - Keeling, M. J., & Rohani, P. (2008). *Modeling Infectious Diseases in Humans and Animals*. Princeton University Press.
-- Liu, Y., Gayle, A. A., Wilder-Smith, A., & Rocklöv, J. (2020). The reproductive number of COVID-19 is higher compared to SARS coronavirus. *Journal of Travel Medicine*, 27(2), taaa021.
-- Liu, Y., & Rocklöv, J. (2021). The reproductive number of the Delta variant of SARS-CoV-2 is far higher compared to the ancestral SARS-CoV-2 virus. *Journal of Travel Medicine*, 28(7), taab124.
+- Lauer, S. A., Grantz, K. H., Bi, Q., et al. (2020). The incubation period of coronavirus disease 2019 (COVID-19) from publicly reported confirmed cases: estimation and application. *Annals of Internal Medicine*, 172(9), 577–582. https://doi.org/10.7326/M20-0504
+- Lessler, J., Reich, N. G., Brookmeyer, R., Perl, T. M., Nelson, K. E., & Cummings, D. A. T. (2009). Incubation periods of acute respiratory viral infections: a systematic review. *The Lancet Infectious Diseases*, 9(5), 291–300. https://doi.org/10.1016/S1473-3099(09)70069-6
+- Liu, Y., Gayle, A. A., Wilder-Smith, A., & Rocklöv, J. (2020). The reproductive number of COVID-19 is higher compared to SARS coronavirus. *Journal of Travel Medicine*, 27(2), taaa021. https://doi.org/10.1093/jtm/taaa021
+- Liu, Y., & Rocklöv, J. (2021). The reproductive number of the Delta variant of SARS-CoV-2 is far higher compared to the ancestral SARS-CoV-2 virus. *Journal of Travel Medicine*, 28(7), taab124. https://doi.org/10.1093/jtm/taab124
+- Santermans, E., Goeyvaerts, N., Melegaro, A., et al. (2015). The social contact hypothesis under the assumption of endemic equilibrium: elucidating the transmission potential of VZV in Europe. *Epidemics*, 11, 14–23. https://doi.org/10.1016/j.epidem.2014.12.005
+- Wu, Y., Kang, L., Guo, Z., Liu, J., Liu, M., & Liang, W. (2022). Incubation period of COVID-19 caused by unique SARS-CoV-2 strains: a systematic review and meta-analysis. *JAMA Network Open*, 5(8), e2228008. https://doi.org/10.1001/jamanetworkopen.2022.28008

@@ -25,6 +25,7 @@ from disease_sim.parameters import (
     Vaccination,
     VaccineModel,
 )
+from disease_sim.presets import CUSTOM, PRESETS, PRESETS_BY_NAME
 from disease_sim.scenarios import (
     COMBINED,
     default_scenarios,
@@ -63,10 +64,10 @@ STEPS_PER_DAY_LABELS = {
 # Slider and input ranges: (min, max, step).
 DAYS_RANGE = (10, 730, 1)
 POPULATION_RANGE = (100, 1_000_000, 1_000)
-R0_RANGE = (0.5, 10.0, 0.1)
+R0_RANGE = (0.5, 20.0, 0.1)
 INFECTIOUS_PERIOD_RANGE = (1.0, 30.0, 0.5)
 LATENT_PERIOD_RANGE = (0.5, 21.0, 0.5)
-INFECTION_RATE_RANGE = (0.01, 2.0, 0.001)
+INFECTION_RATE_RANGE = (0.01, 3.0, 0.001)
 RECOVERY_RATE_RANGE = (0.01, 1.0, 0.001)
 
 DEFAULTS = {
@@ -74,6 +75,7 @@ DEFAULTS = {
     "population": 10_000,
     "initial_infected": 10,
     "days": 365,
+    "preset": CUSTOM,
     "input_mode": R0_INPUT,
     "r0": 2.5,
     "infectious_period": 7.0,
@@ -167,6 +169,24 @@ def _convert_disease_input() -> None:
         _set("r0", _snap(beta / gamma, R0_RANGE))
 
 
+def _apply_preset() -> None:
+    """Fill the disease controls (both input modes) from the chosen preset."""
+    preset = PRESETS_BY_NAME.get(st.session_state["preset"])
+    if preset is None:  # Custom: keep the current values
+        return
+    _set("r0", preset.r0)
+    _set("infectious_period", preset.infectious_period)
+    _set("latent_period", preset.latent_period)
+    gamma = 1.0 / preset.infectious_period
+    _set("recovery_rate", _snap(gamma, RECOVERY_RATE_RANGE))
+    _set("infection_rate", _snap(preset.r0 * gamma, INFECTION_RATE_RANGE))
+
+
+def _mark_custom() -> None:
+    """Editing a disease value by hand means the preset no longer describes it."""
+    _set("preset", CUSTOM)
+
+
 # --- Sidebar --------------------------------------------------------------------
 
 
@@ -213,6 +233,15 @@ def _population_controls() -> tuple[ModelType, float, float, int]:
 
 
 def _disease_controls(model: ModelType) -> DiseaseParams:
+    preset = st.selectbox(
+        "Disease preset",
+        [CUSTOM, *(p.name for p in PRESETS)],
+        key=_kept("preset"),
+        on_change=_apply_preset,
+        help=explain.PARAMETER_HELP["preset"],
+    )
+    if preset != CUSTOM:
+        st.caption(explain.preset_caption(PRESETS_BY_NAME[preset]))
     input_mode = st.radio(
         "Describe the disease by",
         [R0_INPUT, RATES_INPUT],
@@ -221,21 +250,37 @@ def _disease_controls(model: ModelType) -> DiseaseParams:
         help=explain.PARAMETER_HELP["input_mode"],
     )
     if input_mode == R0_INPUT:
-        r0 = _slider("R₀", R0_RANGE, "r0")
+        r0 = _slider("R₀", R0_RANGE, "r0", on_change=_mark_custom)
         infectious_period = _slider(
-            "Mean infectious period (days)", INFECTIOUS_PERIOD_RANGE, "infectious_period"
+            "Mean infectious period (days)",
+            INFECTIOUS_PERIOD_RANGE,
+            "infectious_period",
+            on_change=_mark_custom,
         )
     else:
         infection_rate = _slider(
-            "Infection rate β (per day)", INFECTION_RATE_RANGE, "infection_rate", format="%.3f"
+            "Infection rate β (per day)",
+            INFECTION_RATE_RANGE,
+            "infection_rate",
+            format="%.3f",
+            on_change=_mark_custom,
         )
         recovery_rate = _slider(
-            "Recovery rate γ (per day)", RECOVERY_RATE_RANGE, "recovery_rate", format="%.3f"
+            "Recovery rate γ (per day)",
+            RECOVERY_RATE_RANGE,
+            "recovery_rate",
+            format="%.3f",
+            on_change=_mark_custom,
         )
 
     latent_period = DEFAULTS["latent_period"]
     if model is ModelType.SEIR:
-        latent_period = _slider("Mean latent period (days)", LATENT_PERIOD_RANGE, "latent_period")
+        latent_period = _slider(
+            "Mean latent period (days)",
+            LATENT_PERIOD_RANGE,
+            "latent_period",
+            on_change=_mark_custom,
+        )
 
     if input_mode == R0_INPUT:
         disease = DiseaseParams.from_r0(r0, infectious_period, latent_period, model)

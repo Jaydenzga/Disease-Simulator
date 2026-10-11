@@ -70,41 +70,95 @@ The **Disease preset** menu fills in R₀ and the mean infectious and latent per
 | Seasonal influenza | 1.3 | about 1.2–1.4 | 4 days | 2 days |
 | 1918 pandemic influenza | 2 | about 1.5–3 | 4 days | 2 days |
 | Measles | 15 | about 12–18 | 5 days | 8 days |
-| Chickenpox | 10 | about 7–12 | 7 days | 14 days |
+| Chickenpox | 10 | about 3–12 | 7 days | 14 days |
 
-#### Four quantities that are easy to confuse
+#### Five quantities that are easy to confuse
 
 | Quantity | Meaning | In this model |
 |---|---|---|
-| **Basic reproduction number R₀** | Average number of people one infectious person infects when **everyone else is susceptible** and nobody is changing behavior. It describes a disease *in a particular population*, not the virus alone. | β / γ. Set by the R₀ slider or the preset. |
-| **Effective reproduction number Rₑ** | The same average **at a given time**, after immunity (from infection or vaccination) and interventions have reduced transmission. Rₑ < 1 means the outbreak shrinks. | Shown as "Rₑ at day 0" (§3). It then falls as S is used up. |
-| **Latent period** | Time from infection until a person can **infect others**. | Mean time in E, 1/σ (SEIR only). |
-| **Infectious period** | How long a person **can infect others**. | Mean time in I, D = 1/γ. |
+| **Latent period** | Time from infection until a person can **infect others**. | Mean time in E, 1/σ (SEIR only). Set by the preset. |
+| **Infectious period** | How long a person **can infect others**. | Mean time in I, D = 1/γ. Set by the preset. |
+| **Incubation period** | Time from infection until **symptoms** start. This is what most clinical sources report. | **Not used.** The model has no symptoms. |
+| **Basic reproduction number R₀** | Average number of people one infectious person infects when **everyone else is susceptible** and nobody changes behavior. It describes a disease *in a particular population and setting*, not the pathogen alone. | β / γ. Set by the preset. |
+| **Effective reproduction number Rₑ** | The same average **at a particular time**, after immunity (from infection or vaccination) and interventions have reduced transmission. Rₑ < 1 means the outbreak shrinks. | Computed, not set: "Rₑ at day 0" (§3), which falls as S is used up. |
 
-The **incubation period** (infection to symptoms) is a fifth quantity that the model does not use. It is what most clinical sources report. When infectiousness starts before symptoms, as for COVID-19, measles, and chickenpox, the latent period is shorter than the incubation period.
+The latent and incubation periods are measured from the same moment (infection) but end at different events. When infectiousness starts before symptoms, as for COVID-19, measles, and chickenpox, the latent period is shorter than the incubation period. For influenza the two are similar. Neither can be read off the other without evidence about when infectiousness starts.
 
-Many published "R₀" values are really effective reproduction numbers measured in partly immune populations. This matters most for **seasonal influenza**: most people already have some immunity, so the 1.3 preset describes the start of a typical flu season, not influenza in a population that has never met it. The model starts with everyone susceptible, so it treats this as R₀.
+Rₑ is never a property of a preset. It depends on how much immunity and how many interventions a population has, which the vaccination and contact-reduction controls represent. For example, measles with R₀ = 15 in a population where 95% of people are immune has Rₑ ≈ 15 × 0.05 = 0.75, so outbreaks die out; at 90% immunity Rₑ ≈ 1.5 and they can grow. Many published "R₀" values are themselves effective reproduction numbers measured in partly immune populations. This matters most for **seasonal influenza** (below).
 
-#### What the values are based on
+#### Each preset in detail
 
-Sources were checked on 2026-10-11. Full references with links are at the end of this document.
+Sources were checked on 2026-10-11; full references with links are at the end of this document. The model uses only the R₀, latent period, and infectious period. Incubation periods are listed so they are not mistaken for latent periods.
 
-| Preset | Evidence | How the preset compares |
-|---|---|---|
-| COVID-19 (original) | Review of early estimates: mean R₀ 3.28, median 2.79 (Liu et al., 2020). Incubation period median 5.1 days (Lauer et al., 2020). Infectiousness starts about 2.3 days before symptoms and declines within about 7 days after (He et al., 2020). | R₀ 2.5 is at the low end of the central estimates. Latent 3 days ≈ 5.1 − 2.3. Infectious 5 days is a common modeling value. |
-| COVID-19 (Delta) | Mean R₀ 5.08, range 3.2–8 (Liu & Rocklöv, 2021). Incubation period about 4.4 days (Wu et al., 2022). | R₀ 5 matches the mean. Latent 2 days assumes infectiousness starts about 2 days before symptoms, as for the original strain. |
-| Seasonal influenza | Median reproduction number 1.28, interquartile range 1.19–1.37 (Biggerstaff et al., 2014). Incubation period median 1.4 days for influenza A (Lessler et al., 2009). | R₀ 1.3 matches the median. The 2-day latent period is longer than the 1.4-day median incubation period, so it is on the long side. |
-| 1918 pandemic influenza | Median 1.80, interquartile range 1.47–2.27 (Biggerstaff et al., 2014). | R₀ 2 is inside the interquartile range, a little above the median. |
-| Measles | 12–18 is the most often quoted range, with some estimates well outside it (Anderson & May, 1991; Guerra et al., 2017). Incubation about 11–12 days to first symptoms; infectious from 4 days before to 4 days after rash onset (CDC). | R₀ 15 is the middle of the usual range. The CDC timings suggest a latent period of about 10 days and an infectious period of about 8–9 days, longer than the preset's 8 and 5. |
-| Chickenpox | 7–12 in historical US and UK data (Anderson & May, 1991); 2.8–7.6 from serology in 12 European countries (Santermans et al., 2015). Incubation 14–16 days; infectious from 1–2 days before rash until lesions crust, usually about 5 days after (CDC). | R₀ 10 follows the older range; modern European estimates are lower. Latent 14 days and infectious 7 days follow the CDC timings. |
+**COVID-19 (original strain, 2020):** R₀ 2.5, latent 3 days, infectious 5 days.
+- *R₀:* a review of early-2020 estimates found a mean of 3.28 and a median of 2.79 (Liu et al., 2020). 2.5 is at the low end of the central estimates.
+- *Incubation (not used):* median 5.1 days (Lauer et al., 2020).
+- *Latent:* infectiousness starts about 2.3 days before symptoms (He et al., 2020), so the latent period is about 5.1 − 2.3 ≈ 3 days.
+- *Infectious:* infectiousness peaks around symptom onset and falls within about a week (He et al., 2020). 5 days is a common modeling choice, not a measured mean.
+- *Rₑ:* changed quickly in 2020 as behavior changed and immunity built up; it is not a fixed number.
+
+**COVID-19 (Delta variant, 2021):** R₀ 5, latent 2 days, infectious 5 days.
+- *R₀:* mean 5.08, range 3.2–8 across studies (Liu & Rocklöv, 2021).
+- *Incubation (not used):* about 4.4 days (Wu et al., 2022), shorter than the original strain's.
+- *Latent:* assumes infectiousness starts about 2 days before symptoms, as estimated for the original strain. It was not measured directly for Delta in the sources used here.
+- *Infectious:* the same 5-day modeling value as the original strain.
+- *Rₑ:* Delta spread in 2021 through populations with substantial immunity from vaccination and earlier infection, so observed growth reflected Rₑ, not R₀.
+
+**Seasonal influenza:** R₀ 1.3, latent 2 days, infectious 4 days.
+- *R₀:* median 1.28, interquartile range 1.19–1.37 (Biggerstaff et al., 2014). These are mostly **effective** reproduction numbers: seasonal influenza spreads in populations with partial immunity from earlier seasons and vaccination. In this model, which starts with everyone susceptible, 1.3 therefore stands for the start of a typical flu season, not influenza in a population that has never met it.
+- *Incubation (not used):* median 1.4 days for influenza A (Lessler et al., 2009).
+- *Latent:* the most direct evidence about infectiousness comes from viral shedding in volunteer challenge studies. Shedding rises within about a day of inoculation and peaks on day 2 (Carrat et al., 2008), and a model fitted to these shedding profiles estimated a mean latent period of about 1.6 days (Cori et al., 2012). Viral shedding is a proxy for infectiousness, and challenge volunteers are healthy adults given a measured dose, so this is approximate. The preset's 2 days is at the upper end of this evidence.
+- *Infectious:* shedding lasts about 4.8 days on average (Carrat et al., 2008), which the 4-day value follows. Infectiousness is concentrated early: the same fitted model put the mean infectious period at about 1 day (Cori et al., 2012). See "How fast outbreaks grow" below.
+- *Rₑ:* varies by season with the match between circulating strains, prior immunity, and vaccine.
+
+**1918 pandemic influenza:** R₀ 2, latent 2 days, infectious 4 days.
+- *R₀:* median 1.80, interquartile range 1.47–2.27, from 51 estimates in 24 studies (Biggerstaff et al., 2014). Estimates differ between cities and between the pandemic's waves, and depend on the method. 2 is inside the interquartile range, a little above the median.
+- *Incubation, latent, infectious:* not measured directly in 1918. The preset uses the seasonal influenza values.
+- *Rₑ:* changed between waves as immunity built up and cities closed schools and gatherings. The model has no deaths, although the 1918 pandemic was unusually lethal.
+
+**Measles:** R₀ 15, latent 8 days, infectious 5 days.
+- *R₀:* 12–18 is the most often quoted range (Anderson & May, 1991), but estimates vary well beyond it by setting and method, from about 5 in early 20th-century Kansas to 18 (Anderson & May, 1991; Guerra et al., 2017).
+- *Incubation (not used):* about 11–12 days to the first symptoms and about 14 days to the rash (CDC).
+- *Latent:* household studies give a mean latent period of about 8 days (Hope Simpson, 1952; summarized by Conlan et al., 2010). CDC guidance treats people as infectious from 4 days before the rash, which, with the rash about 14 days after exposure, would put the start of infectiousness nearer 10 days. The CDC window is a deliberately cautious rule for isolating patients, so the household estimate is used.
+- *Infectious:* the same household studies give a mean of about 5 days. The CDC's 4-days-before-to-4-days-after window (about 8–9 days) is a cautious rule for isolating patients, not the average time over which an infected person transmits.
+- *Rₑ:* in a population with high two-dose vaccination coverage, Rₑ is below 1; outbreaks happen where coverage is lower.
+
+**Chickenpox (varicella):** R₀ 10, latent 14 days, infectious 7 days.
+- *R₀:* estimates depend strongly on the population and on the method:
+  - 7–8 (Maryland, USA, 1913–17), 10–11 (Baltimore, USA, 1943), and 10–12 (England and Wales, 1944–68), from historical case reports (Anderson & May, 1991).
+  - 2.8 (England and Wales) to 7.6 (the Netherlands), from 13 pre-vaccination serological surveys in 12 European countries combined with social contact surveys (Santermans et al., 2015). The authors link the differences to child-care attendance, wealth inequality, and infant vaccination coverage.
+
+  The documented range is therefore "about 3–12". The preset's 10 follows the historical estimates and is above every modern European estimate.
+- *Incubation (not used):* 14–16 days, range 10–21 (CDC).
+- *Latent:* infectiousness starts 1–2 days before the rash (CDC), so about 13–14 days after infection.
+- *Infectious:* from 1–2 days before the rash until all lesions have crusted, usually about 5 days after it (CDC), so about 7 days. This is a window during which transmission is possible, not a measured average.
+- *Rₑ:* lower where children are vaccinated against varicella.
+
+#### How fast outbreaks grow: the generation time
+
+R₀ alone decides how many people are eventually infected (§3), but the latent and infectious periods decide **how fast** that happens. The relevant quantity is the **generation time**: the average time between one person being infected and the people they infect being infected. It can be estimated from the **serial interval**, the time between symptom onsets in an infector and the person they infect, which has approximately the same average.
+
+Because this model's waiting times are exponential (below), an infectious person transmits at a constant rate for as long as they stay in I, and the average time from becoming infectious to transmitting is the whole mean infectious period D, not half of it. The model's mean generation time is therefore **latent period + infectious period**. Early in an outbreak, cases grow exponentially at the rate r that solves (1 + r · latent period)(1 + r · D) = R₀ (Wallinga & Lipsitch, 2007); a test checks that the simulation matches this. With periods taken from clinical descriptions, the model's generation times are longer than the observed serial intervals for most presets:
+
+| Preset | Model generation time (latent + D) | Observed mean serial interval | Doubling time in the model |
+|---|---|---|---|
+| COVID-19 (original) | 8 days | about 5.2 days (Rai et al., 2021) | 4.7 days |
+| COVID-19 (Delta) | 7 days | about 3.9 days (Madewell et al., 2023) | 1.9 days |
+| Seasonal influenza | 6 days | 2.2 days for A(H3N2) (Vink et al., 2014); 3.6 days in households (Cowling et al., 2009) | 14.7 days |
+| 1918 pandemic influenza | 6 days | not measured; 2.8 days for 2009 pandemic influenza (Vink et al., 2014) | 4.9 days |
+| Measles | 13 days | 11.7 days (Vink et al., 2014) | 1.5 days |
+| Chickenpox | 21 days | 14.0 days (Vink et al., 2014) | 3.2 days |
+
+So the presets get the **final size** about right for their R₀ but make most outbreaks, especially influenza, **unfold more slowly** than real ones. Measles is the closest match. Shortening the periods to match the serial intervals would fix the timing, but the sliders would then show infectious periods much shorter than the clinical descriptions. A model with more realistic, less spread-out waiting times would resolve both (§10).
 
 #### Why one number cannot describe a disease
 
 - **Variants.** New variants can transmit more easily or progress faster. Delta's R₀ was about twice the original strain's, and incubation periods shortened from strain to strain.
-- **Population and contacts.** R₀ is contacts per day × chance of transmission per contact × duration. Crowded housing, large households, school terms, and age structure change the number of contacts, so the same pathogen has different R₀ values in different places and years.
+- **Population and contacts.** R₀ is contacts per day × chance of transmission per contact × duration. Crowded housing, large households, child care, school terms, and age structure change the number of contacts, so the same pathogen has different R₀ values in different places and years, as chickenpox shows.
 - **Immunity.** Previous infection and vaccination lower Rₑ, not R₀. Use the vaccination controls to explore this instead of lowering R₀.
 - **Environment and season.** Climate, indoor crowding, and ventilation change transmission; influenza is strongly seasonal, which the model leaves out.
 - **Behavior and measurement.** People change behavior during outbreaks, and estimates depend on the data and method used, so estimates of the "same" quantity disagree.
+- **Spread between people.** Every value above is an average. Real latent and infectious periods vary from person to person, and a few people cause many infections while most cause none. One average per quantity cannot show this.
 
 The model still applies its own assumptions (§10). It has no deaths, which matters for the 1918 influenza. People mix equally, and waiting times are exponential, so the presets show how each disease behaves *in this model*. High-R₀ presets (measles, Delta) need more steps per day to stay within the step-error tolerance (§6); the status area says when.
 
@@ -283,7 +337,7 @@ The dashboard displays the quantities defined above without changing them. A few
 - **Homogeneous mixing:** everyone is equally likely to contact everyone else. There are no households, age groups, locations, or networks.
 - **Closed population:** no births, deaths from any cause, or migration. The disease is never fatal in this model.
 - **Permanent immunity** after recovery or vaccination: no waning and no reinfection.
-- **Exponential waiting times** in E and I (§2).
+- **Exponential waiting times** in E and I (§2). Besides giving the periods too much spread, this makes the mean generation time equal to the latent plus the whole infectious period, so outbreaks built from clinical period lengths grow more slowly than real ones (§2, "How fast outbreaks grow"). Splitting E and I into several stages in a row (Erlang-distributed waiting times) would fix both and is a possible future improvement.
 - **Deterministic and continuous:** no chance events, and fractional people. Small outbreaks are not realistic: a real outbreak starting from 2 people can die out by chance, but the model's never does when Rₑ > 1.
 - **Fixed parameters:** β, γ, and σ do not change over time, except β under contact reduction. There is no seasonality and no behavior change in response to the epidemic.
 - **Vaccination only at day 0,** with immediate, permanent protection.
@@ -296,15 +350,24 @@ Links checked on 2026-10-11.
 
 - Anderson, R. M., & May, R. M. (1991). *Infectious Diseases of Humans: Dynamics and Control*. Oxford University Press. (R₀ table, p. 70.)
 - Biggerstaff, M., Cauchemez, S., Reed, C., Gambhir, M., & Finelli, L. (2014). Estimates of the reproduction number for seasonal, pandemic, and zoonotic influenza: a systematic review of the literature. *BMC Infectious Diseases*, 14, 480. https://doi.org/10.1186/1471-2334-14-480
-- Centers for Disease Control and Prevention. Measles clinical diagnosis fact sheet. https://www.cdc.gov/measles/hcp/communication-resources/clinical-diagnosis-fact-sheet.html
+- Carrat, F., Vergu, E., Ferguson, N. M., et al. (2008). Time lines of infection and disease in human influenza: a review of volunteer challenge studies. *American Journal of Epidemiology*, 167(7), 775–785. https://doi.org/10.1093/aje/kwm375
 - Centers for Disease Control and Prevention. *Pink Book*, Chapter 22: Varicella. https://www.cdc.gov/pinkbook/hcp/table-of-contents/chapter-22-varicella.html
+- Centers for Disease Control and Prevention. Measles clinical diagnosis fact sheet. https://www.cdc.gov/measles/hcp/communication-resources/clinical-diagnosis-fact-sheet.html
+- Conlan, A. J. K., Rohani, P., Lloyd, A. L., Keeling, M., & Grenfell, B. T. (2010). Resolving the impact of waiting time distributions on the persistence of measles. *Journal of the Royal Society Interface*, 7(45), 623–640. https://doi.org/10.1098/rsif.2009.0284
+- Cori, A., Valleron, A. J., Carrat, F., Scalia Tomba, G., Thomas, G., & Boëlle, P. Y. (2012). Estimating influenza latency and infectious period durations using viral excretion data. *Epidemics*, 4(3), 132–138. https://doi.org/10.1016/j.epidem.2012.06.001
+- Cowling, B. J., Fang, V. J., Riley, S., Malik Peiris, J. S., & Leung, G. M. (2009). Estimation of the serial interval of influenza. *Epidemiology*, 20(3), 344–347. https://doi.org/10.1097/EDE.0b013e31819d1092
 - Guerra, F. M., Bolotin, S., Lim, G., Heffernan, J., Deeks, S. L., Li, Y., & Crowcroft, N. S. (2017). The basic reproduction number (R₀) of measles: a systematic review. *The Lancet Infectious Diseases*, 17(12), e420–e428. https://doi.org/10.1016/S1473-3099(17)30307-9
 - He, X., Lau, E. H. Y., Wu, P., et al. (2020). Temporal dynamics in viral shedding and transmissibility of COVID-19. *Nature Medicine*, 26, 672–675. https://doi.org/10.1038/s41591-020-0869-5
-- Kermack, W. O., & McKendrick, A. G. (1927). A contribution to the mathematical theory of epidemics. *Proceedings of the Royal Society of London, Series A*, 115(772), 700–721. https://doi.org/10.1098/rspa.1927.0118
+- Hope Simpson, R. E. (1952). Infectiousness of communicable diseases in the household (measles, chickenpox, and mumps). *The Lancet*, 260(6734), 549–554. https://doi.org/10.1016/S0140-6736(52)91357-3
 - Keeling, M. J., & Rohani, P. (2008). *Modeling Infectious Diseases in Humans and Animals*. Princeton University Press.
+- Kermack, W. O., & McKendrick, A. G. (1927). A contribution to the mathematical theory of epidemics. *Proceedings of the Royal Society of London, Series A*, 115(772), 700–721. https://doi.org/10.1098/rspa.1927.0118
 - Lauer, S. A., Grantz, K. H., Bi, Q., et al. (2020). The incubation period of coronavirus disease 2019 (COVID-19) from publicly reported confirmed cases: estimation and application. *Annals of Internal Medicine*, 172(9), 577–582. https://doi.org/10.7326/M20-0504
 - Lessler, J., Reich, N. G., Brookmeyer, R., Perl, T. M., Nelson, K. E., & Cummings, D. A. T. (2009). Incubation periods of acute respiratory viral infections: a systematic review. *The Lancet Infectious Diseases*, 9(5), 291–300. https://doi.org/10.1016/S1473-3099(09)70069-6
-- Liu, Y., Gayle, A. A., Wilder-Smith, A., & Rocklöv, J. (2020). The reproductive number of COVID-19 is higher compared to SARS coronavirus. *Journal of Travel Medicine*, 27(2), taaa021. https://doi.org/10.1093/jtm/taaa021
 - Liu, Y., & Rocklöv, J. (2021). The reproductive number of the Delta variant of SARS-CoV-2 is far higher compared to the ancestral SARS-CoV-2 virus. *Journal of Travel Medicine*, 28(7), taab124. https://doi.org/10.1093/jtm/taab124
+- Liu, Y., Gayle, A. A., Wilder-Smith, A., & Rocklöv, J. (2020). The reproductive number of COVID-19 is higher compared to SARS coronavirus. *Journal of Travel Medicine*, 27(2), taaa021. https://doi.org/10.1093/jtm/taaa021
+- Madewell, Z. J., Yang, Y., Longini, I. M., Halloran, M. E., Vespignani, A., & Dean, N. E. (2023). Rapid review and meta-analysis of serial intervals for SARS-CoV-2 Delta and Omicron variants. *BMC Infectious Diseases*, 23, 429. https://doi.org/10.1186/s12879-023-08407-5
+- Rai, B., Shukla, A., & Dwivedi, L. K. (2021). Estimates of serial interval for COVID-19: a systematic review and meta-analysis. *Clinical Epidemiology and Global Health*, 9, 157–161. https://doi.org/10.1016/j.cegh.2020.08.007
 - Santermans, E., Goeyvaerts, N., Melegaro, A., et al. (2015). The social contact hypothesis under the assumption of endemic equilibrium: elucidating the transmission potential of VZV in Europe. *Epidemics*, 11, 14–23. https://doi.org/10.1016/j.epidem.2014.12.005
+- Vink, M. A., Bootsma, M. C. J., & Wallinga, J. (2014). Serial intervals of respiratory infectious diseases: a systematic review and analysis. *American Journal of Epidemiology*, 180(9), 865–875. https://doi.org/10.1093/aje/kwu209
+- Wallinga, J., & Lipsitch, M. (2007). How generation intervals shape the relationship between growth rates and reproductive numbers. *Proceedings of the Royal Society B*, 274, 599–604. https://doi.org/10.1098/rspb.2006.3754
 - Wu, Y., Kang, L., Guo, Z., Liu, J., Liu, M., & Liang, W. (2022). Incubation period of COVID-19 caused by unique SARS-CoV-2 strains: a systematic review and meta-analysis. *JAMA Network Open*, 5(8), e2228008. https://doi.org/10.1001/jamanetworkopen.2022.28008

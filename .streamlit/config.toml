@@ -1,0 +1,10 @@
+# Light theme with accessible contrast. Chart colors are set in disease_sim/visualization.py.
+[theme]
+base = "light"
+primaryColor = "#256abf"  # 5.4:1 against white, so button and link text stays readable
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f4f4f2"
+textColor = "#1f1f1e"
+
+[browser]
+gatherUsageStats = false

@@ -6,6 +6,7 @@ Kept separate from the interface so the wording can be tested without a browser.
 from disease_sim.metrics import Summary
 from disease_sim.models import STEP_ERROR_TOLERANCE, steps_for_tolerance
 from disease_sim.parameters import VaccineModel
+from disease_sim.presets import DiseasePreset
 
 DISCLAIMER = (
     "Educational model for exploring how epidemics behave. It is not a forecast of any "
@@ -21,6 +22,11 @@ PARAMETER_HELP = {
     "population": "Total number of people (N). Nobody is born, dies, or moves in or out.",
     "initial_infected": "People who are already infectious on day 0.",
     "days": "How many days to simulate. Results are reported once per day.",
+    "preset": (
+        "Fill in R₀ and the infectious and latent periods with typical published values "
+        "for a well-known infection. Moving any disease slider afterwards switches back "
+        "to Custom."
+    ),
     "input_mode": (
         "Describe the disease by its rates, or by R₀ and how long people stay infectious."
     ),
@@ -179,6 +185,16 @@ UNFINISHED_WARNING = (
 )
 
 FINISHED_MESSAGE = "Every scenario's outbreak is over by day {days}, so totals are final."
+
+
+def preset_caption(preset: DiseasePreset) -> str:
+    """What a disease preset sets, and how far to trust it."""
+    return (
+        f"R₀ {preset.r0:g} (published estimates {preset.r0_range}), infectious for "
+        f"{preset.infectious_period:g} days, latent for {preset.latent_period:g} days. "
+        "Typical values, rounded; the model still has no deaths, prior immunity, or "
+        "differences between people."
+    )
 
 
 def step_error_message(error: float, steps_per_day: int, choices: list[int]) -> tuple[bool, str]:

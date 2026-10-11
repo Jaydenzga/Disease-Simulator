@@ -1,8 +1,8 @@
 # Disease Simulator
 
-An interactive epidemic simulator built with Streamlit. Adjust population size, transmission and recovery rates, and vaccination settings, and watch how an outbreak spreads through a population under the SIR (Susceptible–Infected–Recovered) model.
+An interactive epidemic simulator built with Streamlit. Choose an SIR or SEIR model, set the population and disease parameters, add vaccination and contact reduction, and compare four intervention scenarios side by side with summary statistics.
 
-> This is an educational model for exploring how epidemics behave. It is not a forecasting tool.
+> This is an educational model for exploring how epidemics behave. It is not a forecast of any real outbreak.
 
 ## Installation
 
@@ -22,32 +22,41 @@ pip install -r requirements.txt
 streamlit run main.py
 ```
 
-The app opens in your browser at http://localhost:8501. Move the sliders to change:
+The app opens in your browser at http://localhost:8501. Controls:
 
 | Control | Meaning |
 |---|---|
+| Model | **SIR**, or **SEIR**, which adds an Exposed stage (infected but not yet infectious) |
 | Population | Total number of people (N) |
 | Initial Infected | People infectious on day 0 |
-| Infection Rate | Transmission rate β, per day |
-| Recovery Rate | Recovery rate γ, per day (mean infectious period = 1/γ days) |
+| Disease Input | Enter the disease as **rates** (β, γ) or as **R₀ and mean infectious period** |
+| Infection Rate / Recovery Rate | Transmission rate β and recovery rate γ, per day |
+| R₀ / Mean infectious period | Converted to γ = 1 / period and β = R₀ · γ |
+| Mean latent period (days) | SEIR only: average time from infection to becoming infectious (σ = 1 / period) |
 | Days | Length of the simulation |
 | Vaccinated (%) | Share of the initially susceptible population vaccinated on day 0 |
 | Vaccine Effectiveness (%) | How well the vaccine works (meaning depends on the vaccine model) |
 | Vaccine Model | **Immunity**: that % of vaccinated people are fully immune. **Partial protection**: every vaccinated person's infection risk is reduced by that %. |
+| Contact Reduction (%) | Distancing or masking: lowers transmission by this % from the start day, optionally until an end day |
+| Simulation steps per day | Accuracy of the numerical solution: 4 by default, 1 reproduces the original app, 10 is most accurate |
+
+The app shows the compartment curves for your settings, then compares four scenarios (**no intervention**, **vaccination only**, **contact reduction only**, **both**) in one chart and a summary table. The table lists peak infected and peak day; the mean, median, and standard deviation of daily infected counts; new and cumulative infections; attack rate; infections averted; and Rₑ at day 0.
 
 ## The model
 
-Each day, with S + I + R + V = N:
-
 ```
-new infections  = β · I · S / N            (plus β · I · V / N · (1 − e) for a leaky vaccine)
-new recoveries  = γ · I
+SIR:   S ──β·S·I/N──▶ I ──γ·I──▶ R
+SEIR:  S ──β·S·I/N──▶ E ──σ·E──▶ I ──γ·I──▶ R
 ```
 
-- The basic reproduction number is R₀ = β / γ.
-- Vaccination happens once, on day 0, and immunity never wanes.
-- The population is closed: no births, deaths, or migration.
-- Everyone mixes with everyone else equally.
+- S + E + I + R + V = N on every day. V holds vaccinated people (vaccination happens once, on day 0).
+- R₀ = β / γ, the same for SIR and SEIR.
+- The equations are solved with forward Euler using several steps per day.
+- Main assumptions: everyone mixes equally; closed population with no deaths; permanent immunity; deterministic (no randomness).
+
+The mean, median, and standard deviation describe the shape of one deterministic curve. They are not estimates of uncertainty or statistical significance.
+
+**[docs/MODEL.md](docs/MODEL.md)** has the full equations, parameter table, numerical method, metric formulas, assumptions, and limitations.
 
 ## Project structure
 
@@ -55,11 +64,14 @@ new recoveries  = γ · I
 main.py                 Streamlit entry point
 disease_sim/
   parameters.py         Input dataclasses and validation
-  interventions.py      Vaccination
-  models.py             SIR simulation
+  interventions.py      Vaccination and contact reduction
+  models.py             Shared SIR/SEIR simulation engine
+  metrics.py            Summary metrics and descriptive statistics
+  scenarios.py          Four-scenario comparison
   visualization.py      Charts
   interface.py          Streamlit controls and layout
 tests/                  Pytest suite
+docs/MODEL.md           Scientific documentation
 docs/ROADMAP.md         Development plan
 ```
 
@@ -71,4 +83,4 @@ pytest
 ruff check .
 ```
 
-The tests check that the population total is conserved, that no compartment goes negative, and that the SIR model reproduces the original version of this app exactly.
+The tests check that the population total is conserved and no compartment goes negative; that the SIR model at 1 step per day reproduces the original version of this app exactly; that SIR and SEIR match the Kermack–McKendrick final-size equation; that SEIR approaches SIR as the latent period shrinks; that interventions behave as expected; that metrics match hand calculations; and that invalid inputs (including NaN and infinity) are rejected.

@@ -122,12 +122,12 @@ def test_app_runs_with_five_tabs_and_no_warnings():
 def test_status_area_shows_accuracy_and_outbreak_status():
     app = _app()
     # Defaults: error within tolerance; the combined SEIR scenario has not finished.
-    assert any(s.startswith("Estimated numerical error: about") for s in _successes(app))
-    (unfinished,) = [w for w in _warnings(app) if w.startswith("Outbreak not over")]
+    assert any(s.startswith("Calculation accuracy: good") for s in _successes(app))
+    (unfinished,) = [w for w in _warnings(app) if w.startswith("Outbreak still going")]
     assert f"day 365 in: {COMBINED}." in unfinished
 
     _slider(app, "Days to simulate").set_value(730).run()
-    assert not any(w.startswith("Outbreak not over") for w in _warnings(app))
+    assert not any(w.startswith("Outbreak still going") for w in _warnings(app))
     assert explain.FINISHED_MESSAGE.format(days=730) in _successes(app)
 
 
@@ -484,17 +484,33 @@ def test_end_day_follows_a_later_start_day(simulations):
 
 def test_step_size_warning_for_fast_rates():
     app = _app()
-    assert not any("Numerical error" in w for w in _warnings(app))
+    assert not any("Calculation accuracy: low" in w for w in _warnings(app))
 
     _radio(app, "Model").set_value(ModelType.SIR).run()
     _slider(app, "R₀").set_value(4.0).run()
     _slider(app, "Mean infectious period (days)").set_value(1.0).run()
-    warning = next(w for w in _warnings(app) if "Numerical error" in w)
-    assert "Choose at least 50 steps per day" in warning
+    warning = next(w for w in _warnings(app) if "Calculation accuracy: low" in w)
+    assert "choose at least 50 steps per day" in warning
 
     _steps(app).set_value(50).run()
     assert not app.exception
-    assert not any("Numerical error" in w for w in _warnings(app))
+    assert not any("Calculation accuracy: low" in w for w in _warnings(app))
+
+
+def test_out_of_range_values_never_reach_the_simulation(simulations):
+    """A public app must not run oversized simulations, even from crafted inputs."""
+    app = _app()
+    _slider(app, "Days to simulate").set_value(10**7)
+    _number(app, "Population").set_value(10**12)
+    _slider(app, "R₀").set_value(1e6)
+    _slider(app, "Mean infectious period (days)").set_value(1e-9)
+    app.run()
+    assert not app.exception
+    config, disease = simulations[-1]["config"], simulations[-1]["disease"]
+    assert interface.DAYS_RANGE[0] <= config.days <= interface.DAYS_RANGE[1]
+    assert interface.POPULATION_RANGE[0] <= config.population <= interface.POPULATION_RANGE[1]
+    assert disease.basic_reproduction_number <= interface.R0_RANGE[1]
+    assert disease.mean_infectious_period >= interface.INFECTIOUS_PERIOD_RANGE[0]
 
 
 # --- Charts and tabs ------------------------------------------------------------------------

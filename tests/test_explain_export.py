@@ -104,14 +104,14 @@ def test_step_error_within_tolerance():
     ok, text = explain.step_error_message(0.039, 4, [1, 4, 10, 20, 50])
     assert ok
     assert "about 3.9% of the peak" in text
-    assert f"{STEP_ERROR_TOLERANCE:.0%} tolerance" in text
+    assert f"{STEP_ERROR_TOLERANCE:.0%} limit" in text
 
 
 @pytest.mark.parametrize(
     "error, steps, advice",
     [
-        (0.20, 4, "Choose at least 20 steps per day"),
-        (2.00, 4, "Choose the most accurate setting"),
+        (0.20, 4, "choose at least 20 steps per day"),
+        (2.00, 4, "choose the most accurate setting"),
         (0.20, 50, "Even the most accurate setting is approximate"),
     ],
 )

@@ -168,20 +168,23 @@ THREE_KINDS = [
 ]
 
 STEP_ERROR_OK = (
-    "Estimated numerical error: about {error:.1%} of the peak, within the {tolerance:.0%} "
-    "tolerance."
+    "Calculation accuracy: good. The app solves the equations in small time steps, which "
+    "moves the infected curve by at most about {error:.1%} of the peak, within the "
+    "{tolerance:.0%} limit."
 )
 
 STEP_SIZE_WARNING = (
-    "Numerical error is estimated at about {error:.0%} of the peak at this number of "
-    "simulation steps per day. {advice}"
+    "Calculation accuracy: low. The disease changes quickly compared with the time steps "
+    "the app uses, so the infected curve could be off by about {error:.0%} of the peak. "
+    "{advice}"
 )
 
 UNFINISHED_WARNING = (
-    "Outbreak not over by day {days} in: {names}. Totals for these scenarios are "
-    "incomplete, and infections averted counts only infections up to the last day: an "
-    "intervention that merely delays infections past that day looks more effective than "
-    "it is. Increase **Days** to compare final totals."
+    "Outbreak still going on day {days} in: {names}. Some people are still infected when "
+    "the simulation stops, often because an intervention slowed the spread and stretched "
+    "the outbreak out. Totals for these scenarios are not final, and an intervention that "
+    "only delays infections past day {days} looks more effective than it is. Increase "
+    "**Days to simulate** to see final totals."
 )
 
 FINISHED_MESSAGE = "Every scenario's outbreak is over by day {days}, so totals are final."
@@ -208,9 +211,15 @@ def step_error_message(error: float, steps_per_day: int, choices: list[int]) -> 
     needed = steps_for_tolerance(steps_per_day, error)
     options = sorted(k for k in choices if k >= needed)
     if options:
-        advice = f"Choose at least {options[0]} steps per day for more accurate curves."
+        advice = (
+            f"Under **Numerical accuracy** in the sidebar, choose at least {options[0]} "
+            "steps per day."
+        )
     elif steps_per_day < max(choices):
-        advice = "Choose the most accurate setting; results will still be approximate."
+        advice = (
+            "Under **Numerical accuracy** in the sidebar, choose the most accurate setting; "
+            "results will still be approximate."
+        )
     else:
         advice = "Even the most accurate setting is approximate for these rates."
     return False, STEP_SIZE_WARNING.format(error=error, advice=advice)

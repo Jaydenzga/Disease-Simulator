@@ -171,3 +171,16 @@ def test_comparison_table_lists_all_scenarios():
     assert "Mean infected" in table.columns
     assert "SD infected" in table.columns
     assert interface.STATISTICS_CAPTION in [c.value for c in app.caption]
+
+
+def test_reduction_starting_on_the_last_day_cannot_be_lifted(simulations):
+    app = _app()
+    app.checkbox[0].check().run()
+    _slider(app, "Reduction ends on day").set_value(29).run()
+    # Moving the start to the last possible day leaves no valid end day.
+    _slider(app, "Reduction starts on day").set_value(29).run()
+    assert not app.exception
+    assert app.checkbox[0].disabled
+    assert "Reduction ends on day" not in [s.label for s in app.slider]
+    contact = simulations[-1]["scenarios"][CONTACT_REDUCTION_ONLY].contact_reduction
+    assert (contact.start_day, contact.end_day) == (29, None)

@@ -127,7 +127,10 @@ def _contact_reduction_controls(days: int) -> ContactReduction:
     )
     start_day = st.slider("Reduction starts on day", 0, days - 1, 0)
     end_day = None
-    if st.checkbox("Lift the reduction before the end of the simulation"):
+    # The end-day slider needs at least two choices (start + 1 .. days).
+    can_lift = start_day + 1 < days
+    lift = st.checkbox("Lift the reduction before the end of the simulation", disabled=not can_lift)
+    if lift and can_lift:
         end_day = st.slider("Reduction ends on day", start_day + 1, days, days)
     return ContactReduction(reduction / 100, start_day, end_day)
 

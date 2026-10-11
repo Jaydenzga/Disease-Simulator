@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from disease_sim.parameters import Vaccination, VaccineModel
+from disease_sim.parameters import ContactReduction, Vaccination, VaccineModel
 
 
 @dataclass(frozen=True)
@@ -35,3 +35,10 @@ def apply_vaccination(susceptible: float, vaccination: Vaccination) -> Vaccinate
         vaccinated=vaccinated,
         susceptibility=susceptibility,
     )
+
+
+def contact_multiplier(t: float, contact_reduction: ContactReduction) -> float:
+    """Factor applied to the transmission rate at time t (in days)."""
+    if contact_reduction.is_active(t):
+        return 1.0 - contact_reduction.reduction
+    return 1.0

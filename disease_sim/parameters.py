@@ -174,3 +174,29 @@ class SimulationConfig:
             )
         _check_positive_integer("days", self.days)
         _check_positive_integer("steps_per_day", self.steps_per_day)
+
+
+@dataclass(frozen=True)
+class ContactReduction:
+    """Non-pharmaceutical intervention (distancing, masking) that scales beta.
+
+    Transmission is multiplied by (1 - reduction) at every time t with
+    start_day <= t < end_day. `end_day=None` means it is never lifted.
+    """
+
+    reduction: float = 0.0
+    start_day: float = 0.0
+    end_day: float | None = None
+
+    def __post_init__(self) -> None:
+        _check_fraction("reduction", self.reduction)
+        _check_nonnegative("start_day", self.start_day)
+        if self.end_day is not None:
+            _check_finite("end_day", self.end_day)
+            if self.end_day <= self.start_day:
+                raise ValueError(
+                    f"end_day ({self.end_day}) must be after start_day ({self.start_day})"
+                )
+
+    def is_active(self, t: float) -> bool:
+        return self.start_day <= t and (self.end_day is None or t < self.end_day)

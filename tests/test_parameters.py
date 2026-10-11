@@ -49,3 +49,26 @@ def test_apply_vaccination_susceptibility():
     assert (leaky.susceptible, leaky.vaccinated, leaky.susceptibility) == pytest.approx(
         (50, 50, 0.2)
     )
+
+
+NON_FINITE = [float("nan"), float("inf"), float("-inf")]
+
+
+@pytest.mark.parametrize("value", NON_FINITE)
+@pytest.mark.parametrize(
+    "build, field",
+    [
+        (lambda x: SimulationConfig(x, 1, 10), "population"),
+        (lambda x: SimulationConfig(100, x, 10), "initial_infected"),
+        (lambda x: SimulationConfig(100, 1, x), "days"),
+        (lambda x: DiseaseParams(x, 0.1), "infection_rate"),
+        (lambda x: DiseaseParams(0.1, x), "recovery_rate"),
+        (lambda x: Vaccination(x, 0.5), "coverage"),
+        (lambda x: Vaccination(0.5, x), "effectiveness"),
+    ],
+)
+def test_non_finite_inputs_rejected(build, field, value):
+    # NaN compares False to everything, so it must be caught explicitly rather
+    # than relying on range checks; infinite days must not raise OverflowError.
+    with pytest.raises(ValueError, match=f"{field} must be a finite number"):
+        build(value)

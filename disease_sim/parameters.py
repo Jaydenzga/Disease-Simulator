@@ -1,9 +1,12 @@
 """Simulation inputs and their validation.
 
 All rates are per day. Fractions (coverage, effectiveness) are in [0, 1];
-the interface is responsible for converting percentages.
+the interface is responsible for converting percentages. Every numeric input
+must be finite: NaN fails every comparison, so without an explicit check it
+would slip past range checks and turn the whole simulation into NaN.
 """
 
+import math
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -21,12 +24,19 @@ class VaccineModel(StrEnum):
     LEAKY = "leaky"
 
 
+def _check_finite(name: str, value: float) -> None:
+    if not math.isfinite(value):
+        raise ValueError(f"{name} must be a finite number, got {value}")
+
+
 def _check_fraction(name: str, value: float) -> None:
+    _check_finite(name, value)
     if not 0.0 <= value <= 1.0:
         raise ValueError(f"{name} must be between 0 and 1, got {value}")
 
 
 def _check_nonnegative(name: str, value: float) -> None:
+    _check_finite(name, value)
     if value < 0:
         raise ValueError(f"{name} must be nonnegative, got {value}")
 
@@ -74,6 +84,7 @@ class SimulationConfig:
     days: int
 
     def __post_init__(self) -> None:
+        _check_finite("population", self.population)
         if self.population <= 0:
             raise ValueError(f"population must be positive, got {self.population}")
         _check_nonnegative("initial_infected", self.initial_infected)
@@ -82,5 +93,6 @@ class SimulationConfig:
                 f"initial_infected ({self.initial_infected}) cannot exceed "
                 f"population ({self.population})"
             )
+        _check_finite("days", self.days)
         if int(self.days) != self.days or self.days < 1:
             raise ValueError(f"days must be a positive integer, got {self.days}")

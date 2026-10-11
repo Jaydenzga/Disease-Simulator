@@ -32,6 +32,7 @@ Dependencies: `requirements.in` holds the supported ranges; `requirements.txt` i
 - Disease presets (`presets.py`) are rounded published R₀ and period values. Choosing one fills the disease sliders in both input modes, keeps the chosen model, and any later disease edit sets the preset back to Custom. Every preset must fit the slider ranges (tested). Sources are in MODEL.md §2.
 - UI wording (tooltips, captions, run summary, status messages) lives in `explain.py`; CSV export in `export.py`. Both are pure so tests check them directly. Figures in `visualization.py` take fixed colors and line patterns per compartment and per scenario name. On log axes, values below `LOG_FLOOR` are hidden with a note.
 - App tests (`tests/test_app.py`) use `AppTest`. Results are cached across runs, so the autouse fixture clears `_compute`. A test that expects a recomputation after returning to earlier settings must clear the cache first. Look up widgets by label, not index: main-area widgets come before sidebar widgets in `AppTest` lists.
+- `docs/DEPLOYMENT.md` is the Streamlit Community Cloud guide; README screenshots are in `docs/images/` (retake them when the UI changes visibly).
 - `docs/MODEL.md` must describe exactly what the code implements. Update it with any change to equations, metrics, or assumptions.
 
 ## Invariants the tests enforce

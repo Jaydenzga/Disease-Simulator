@@ -16,6 +16,13 @@ class VaccinatedStart:
     susceptibility: float
 
 
+def vaccine_susceptibility(vaccination: Vaccination) -> float:
+    """Infection risk of someone in V relative to someone in S."""
+    if vaccination.model is VaccineModel.ALL_OR_NOTHING:
+        return 0.0
+    return 1.0 - vaccination.effectiveness
+
+
 def apply_vaccination(susceptible: float, vaccination: Vaccination) -> VaccinatedStart:
     """Move vaccinated people out of S and into V at day 0.
 
@@ -26,14 +33,12 @@ def apply_vaccination(susceptible: float, vaccination: Vaccination) -> Vaccinate
     c, e = vaccination.coverage, vaccination.effectiveness
     if vaccination.model is VaccineModel.ALL_OR_NOTHING:
         vaccinated = c * e * susceptible
-        susceptibility = 0.0
     else:
         vaccinated = c * susceptible
-        susceptibility = 1.0 - e
     return VaccinatedStart(
         susceptible=susceptible - vaccinated,
         vaccinated=vaccinated,
-        susceptibility=susceptibility,
+        susceptibility=vaccine_susceptibility(vaccination),
     )
 
 

@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.figure import Figure
 
-from disease_sim.parameters import VaccineModel
+from disease_sim.parameters import ModelType, VaccineModel
 
 SERIES = [
+    ("E", "Exposed (not yet infectious)", "orange"),  # SEIR only
     ("I", "Infected", "red"),
     ("R", "Recovered", "green"),
     ("S", "Susceptible", "blue"),
@@ -25,14 +26,18 @@ VACCINATED_LABELS = {
 def compartment_figure(
     results: pd.DataFrame,
     vaccine_model: VaccineModel = VaccineModel.ALL_OR_NOTHING,
-    title: str = "Disease Spread (SIR Model)",
+    model: ModelType = ModelType.SIR,
+    title: str | None = None,
 ) -> Figure:
-    """Line chart of every compartment over time."""
+    """Line chart of every compartment over time (E is shown only for SEIR)."""
+    model = ModelType(model)
     fig, ax = plt.subplots()
     for column, label, color in SERIES:
+        if column == "E" and model is not ModelType.SEIR:
+            continue
         label = label or VACCINATED_LABELS[VaccineModel(vaccine_model)]
         ax.plot(results["day"], results[column], label=label, color=color)
-    ax.set_title(title)
+    ax.set_title(title or f"Disease Spread ({model} Model)")
     ax.set_xlabel("Days")
     ax.set_ylabel("People")
     ax.legend()

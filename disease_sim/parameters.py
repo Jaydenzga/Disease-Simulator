@@ -41,23 +41,86 @@ def _check_nonnegative(name: str, value: float) -> None:
         raise ValueError(f"{name} must be nonnegative, got {value}")
 
 
+class ModelType(StrEnum):
+    """Which compartments the disease passes through.
+
+    SIR: infected people are infectious immediately.
+    SEIR: infected people first spend a latent period in E (infected but not
+        yet infectious) before moving to I.
+    """
+
+    SIR = "SIR"
+    SEIR = "SEIR"
+
+
+DEFAULT_LATENT_PERIOD = 5.0  # days
+
+
+def _check_positive(name: str, value: float) -> None:
+    _check_finite(name, value)
+    if value <= 0:
+        raise ValueError(f"{name} must be positive, got {value}")
+
+
 @dataclass(frozen=True)
 class DiseaseParams:
-    """Transmission (beta) and recovery (gamma) rates, per day."""
+    """Per-day rates: transmission (beta), recovery (gamma), progression (sigma).
+
+    `progression_rate` is sigma, the rate at which exposed people become
+    infectious (1 / mean latent period). Only SEIR uses it.
+    """
 
     infection_rate: float
     recovery_rate: float
+    progression_rate: float = 1.0 / DEFAULT_LATENT_PERIOD
+    model: ModelType = ModelType.SIR
 
     def __post_init__(self) -> None:
         _check_nonnegative("infection_rate", self.infection_rate)
         _check_nonnegative("recovery_rate", self.recovery_rate)
+        _check_positive("progression_rate", self.progression_rate)
+        object.__setattr__(self, "model", ModelType(self.model))
+
+    @classmethod
+    def from_r0(
+        cls,
+        r0: float,
+        infectious_period: float,
+        latent_period: float = DEFAULT_LATENT_PERIOD,
+        model: ModelType = ModelType.SIR,
+    ) -> "DiseaseParams":
+        """Build rates from R0 and mean periods in days.
+
+        gamma = 1 / infectious period, beta = R0 * gamma, sigma = 1 / latent period.
+        """
+        _check_nonnegative("r0", r0)
+        _check_positive("infectious_period", infectious_period)
+        _check_positive("latent_period", latent_period)
+        gamma = 1.0 / infectious_period
+        return cls(r0 * gamma, gamma, 1.0 / latent_period, model)
 
     @property
     def basic_reproduction_number(self) -> float:
-        """R0 = beta / gamma (infinite if nobody ever recovers)."""
+        """R0 = beta / gamma (infinite if nobody ever recovers).
+
+        The latent period delays infectiousness but does not change how long
+        anyone is infectious, so R0 is the same for SIR and SEIR.
+        """
         if self.recovery_rate == 0:
             return float("inf")
         return self.infection_rate / self.recovery_rate
+
+    @property
+    def mean_infectious_period(self) -> float:
+        """1 / gamma, in days (infinite if nobody ever recovers)."""
+        if self.recovery_rate == 0:
+            return float("inf")
+        return 1.0 / self.recovery_rate
+
+    @property
+    def mean_latent_period(self) -> float:
+        """1 / sigma, in days."""
+        return 1.0 / self.progression_rate
 
 
 @dataclass(frozen=True)

@@ -7,6 +7,7 @@ from disease_sim.models import COMPARTMENTS, simulate, simulate_sir
 from disease_sim.parameters import (
     LEGACY_STEPS_PER_DAY,
     DiseaseParams,
+    ModelType,
     SimulationConfig,
     Vaccination,
     VaccineModel,
@@ -53,7 +54,8 @@ def test_output_shape():
     results = simulate_sir(SimulationConfig(1000, 2, 30), DiseaseParams(0.05, 0.03))
     assert list(results.columns) == ["day", *COMPARTMENTS]
     assert results["day"].tolist() == list(range(31))
-    assert results.iloc[0][["S", "I", "R", "V"]].tolist() == [998, 2, 0, 0]
+    assert results.iloc[0][["S", "E", "I", "R", "V"]].tolist() == [998, 0, 2, 0, 0]
+    assert (results["E"] == 0).all()  # SIR has no latent stage
 
 
 # Includes rates far beyond the slider maxima, where an uncapped Euler step
@@ -234,3 +236,131 @@ def test_one_step_per_day_and_four_differ_but_agree_closely():
     default = simulate(SimulationConfig(1000, 2, 100), disease)
     assert not legacy.equals(default)
     assert (abs(legacy["I"] - default["I"]) < 0.05 * 1000).all()
+
+
+# --- SEIR ---------------------------------------------------------------
+
+
+def seir(beta, gamma, latent_period):
+    return DiseaseParams(beta, gamma, 1 / latent_period, ModelType.SEIR)
+
+
+SEIR_GRID = list(
+    itertools.product(
+        [0.0, 0.3, 3.0],  # infection rate
+        [0.0, 0.1, 1.5],  # recovery rate
+        [0.1, 5.0, 21.0],  # mean latent period (days); 0.1 makes sigma * dt > 1
+        [(0.0, 1.0, VaccineModel.ALL_OR_NOTHING), (0.6, 0.5, VaccineModel.LEAKY)],
+        [1, 4, 10],  # steps per day
+    )
+)
+
+
+@pytest.mark.parametrize("beta, gamma, latent, vaccine, steps", SEIR_GRID)
+def test_seir_conservation_and_nonnegativity(beta, gamma, latent, vaccine, steps):
+    n = 1000
+    results = simulate(
+        SimulationConfig(n, 5, 150, steps), seir(beta, gamma, latent), Vaccination(*vaccine)
+    )
+    totals = results[COMPARTMENTS].sum(axis=1)
+    assert (abs(totals - n) < 1e-9 * n).all()
+    assert (results[COMPARTMENTS] >= 0).all().all()
+
+
+def test_seir_starts_with_nobody_exposed():
+    results = simulate(SimulationConfig(1000, 2, 10), seir(0.3, 0.1, 5))
+    assert results.iloc[0][["S", "E", "I", "R", "V"]].tolist() == [998, 0, 2, 0, 0]
+    assert results["E"].iloc[1:].gt(0).all()
+
+
+def test_seir_one_step_by_hand():
+    s0, e0, i0 = 998, 0, 2
+    results = simulate(SimulationConfig(1000, i0, 2, 1), seir(0.3, 0.1, 5))
+    infections = 0.3 * i0 / 1000 * s0
+    day1 = results.iloc[1]
+    assert day1["S"] == pytest.approx(s0 - infections)
+    assert day1["E"] == pytest.approx(e0 + infections)  # nobody was exposed to progress yet
+    assert day1["I"] == pytest.approx(i0 - 0.1 * i0)
+    assert day1["R"] == pytest.approx(0.1 * i0)
+    # Day 2: a fifth of the exposed become infectious.
+    day2 = results.iloc[2]
+    assert day2["I"] == pytest.approx(day1["I"] + 0.2 * day1["E"] - 0.1 * day1["I"])
+
+
+def test_seir_leaky_breakthrough_enters_exposed():
+    results = simulate(
+        SimulationConfig(1000, 10, 1, 1), seir(0.4, 0.1, 5), Vaccination(1.0, 0.5, "leaky")
+    )
+    day0, day1 = results.iloc[0], results.iloc[1]
+    breakthrough = 0.4 * 10 / 1000 * (1 - 0.5) * 990
+    assert day0["V"] - day1["V"] == pytest.approx(breakthrough)
+    assert day1["E"] == pytest.approx(breakthrough)
+    assert day1["I"] == pytest.approx(10 - 0.1 * 10)
+
+
+@pytest.mark.parametrize("beta, gamma", [(0.3, 0.1), (0.5, 0.25)])
+def test_seir_final_size_matches_kermack_mckendrick(beta, gamma):
+    # The latent stage delays infections but does not change who is eventually infected.
+    n, i0 = 1000, 1
+    results = simulate(SimulationConfig(n, i0, 800, 10), seir(beta, gamma, 5))
+    exact = final_size_fraction(beta / gamma, (n - i0) / n)
+    assert abs(1 - results["S"].iloc[-1] / n - exact) / exact < 0.01
+
+
+def test_latent_period_delays_and_flattens_the_peak():
+    config = SimulationConfig(1000, 2, 300)
+    sir = simulate(config, DiseaseParams(0.3, 0.1))
+    delayed = simulate(config, seir(0.3, 0.1, 5))
+    assert delayed["I"].idxmax() > sir["I"].idxmax()
+    assert delayed["I"].max() < sir["I"].max()
+
+
+def test_seir_approaches_sir_as_latent_period_shrinks():
+    config = SimulationConfig(1000, 2, 300, 10)
+    sir = simulate(config, DiseaseParams(0.3, 0.1))
+    gaps = [
+        (simulate(config, seir(0.3, 0.1, latent))["I"] - sir["I"]).abs().max()
+        for latent in (4, 2, 1, 0.5, 0.25, 0.1)
+    ]
+    assert all(a > b for a, b in itertools.pairwise(gaps))
+    assert gaps[-1] < 0.025 * 1000
+
+
+# --- Threshold behavior (R_e < 1) ----------------------------------------
+
+SUBCRITICAL = [
+    # (disease, vaccination) with R_e(0) = R0 * (S0 + m * V0) / N below 1
+    (DiseaseParams(0.08, 0.1), Vaccination()),
+    (DiseaseParams(0.3, 0.1), Vaccination(0.8, 1.0)),
+    (DiseaseParams(0.3, 0.1), Vaccination(1.0, 0.8, VaccineModel.LEAKY)),
+]
+
+
+def _initial_re(disease, results, vaccination):
+    day0 = results.iloc[0]
+    m = 0.0 if vaccination.model is VaccineModel.ALL_OR_NOTHING else 1 - vaccination.effectiveness
+    n = day0[COMPARTMENTS].sum()
+    return disease.basic_reproduction_number * (day0["S"] + m * day0["V"]) / n
+
+
+@pytest.mark.parametrize("disease, vaccination", SUBCRITICAL)
+def test_sir_infections_fall_from_day_0_when_re_below_1(disease, vaccination):
+    results = simulate(SimulationConfig(1000, 10, 200), disease, vaccination)
+    assert _initial_re(disease, results, vaccination) < 1
+    assert results["I"].is_monotonic_decreasing
+
+
+@pytest.mark.parametrize("model", list(ModelType))
+@pytest.mark.parametrize("disease, vaccination", SUBCRITICAL)
+def test_no_outbreak_when_re_below_1(disease, vaccination, model):
+    # Each infected person causes fewer than one new infection on average, so
+    # the outbreak dies out: summing the generations, total new infections
+    # cannot exceed I0 * Re / (1 - Re). This holds for SEIR too, even though
+    # SEIR's E + I is not guaranteed to fall at every instant.
+    disease = DiseaseParams(disease.infection_rate, disease.recovery_rate, 0.2, model)
+    i0 = 10
+    results = simulate(SimulationConfig(1000, i0, 400), disease, vaccination)
+    re = _initial_re(disease, results, vaccination)
+    first, last = results.iloc[0], results.iloc[-1]
+    new_infections = (first["S"] - last["S"]) + (first["V"] - last["V"])
+    assert new_infections <= i0 * re / (1 - re) + 1e-9

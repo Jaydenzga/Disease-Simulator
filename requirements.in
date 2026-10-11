@@ -2,7 +2,7 @@
 # The lower bounds are tested in CI (ci/requirements-min.txt).
 # Edit this file, then regenerate the lock file requirements.txt:
 #   uv pip compile --universal --python-version 3.11 requirements.in -o requirements.txt
-streamlit>=1.50,<2
+streamlit>=1.54,<2  # 1.54 fixes CVE-2026-33682 and CVE-2026-10804
 plotly>=5.18,<8
 pandas>=2.2.2,<4  # first pandas release built for NumPy 2
 numpy>=2.0,<3  # Streamlit's pyarrow needs NumPy 2

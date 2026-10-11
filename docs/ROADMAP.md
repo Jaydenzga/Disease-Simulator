@@ -82,7 +82,7 @@ ruff>=0.4
 Notes:
 - **matplotlib is removed** (Phase 3). Plotly replaced it; Phases 1–2 used matplotlib temporarily so the app worked after each phase.
 - **No SciPy.** The models are simple enough to step directly (see §4.1), and leaving SciPy out keeps deployment light.
-- **Phase 4 update:** the ranges now live in `requirements.in` and `requirements.txt` is a lock file generated from it with `uv pip compile`. Testing the lower bounds showed that NumPy must be ≥ 2.0 (Streamlit's pyarrow needs it) and pandas ≥ 2.2.2 (the first release built for NumPy 2); `ci/requirements-min.txt` pins the bounds and CI tests them.
+- **Phase 4 update:** the ranges now live in `requirements.in` and `requirements.txt` is a lock file generated from it with `uv pip compile`. Testing the lower bounds showed that NumPy must be ≥ 2.0 (Streamlit's pyarrow needs it) and pandas ≥ 2.2.2 (the first release built for NumPy 2). The Streamlit floor is 1.54, which fixes two security advisories (CVE-2026-33682, CVE-2026-10804) present in 1.50–1.53. `ci/requirements-min.txt` pins the bounds and CI tests them. The ranges above are the original plan; `requirements.in` is the current source.
 - **Python version:** CI tests 3.11, 3.12, 3.13, and 3.14.
 
 ---
@@ -339,9 +339,9 @@ Disease deaths (SEIRD), waning immunity or reinfection (SEIRS), vaccination roll
 
 ## Phase 4 decisions (2026-10-11, pending review)
 
-1. **Dependencies:** `requirements.in` (ranges) → `requirements.txt` (uv-compiled lock, exact versions for Python 3.11–3.14). Dev tools are pinned in `requirements-dev.txt`. Floors raised to NumPy 2.0 and pandas 2.2.2 after testing them.
+1. **Dependencies:** `requirements.in` (ranges) → `requirements.txt` (uv-compiled lock, exact versions for Python 3.11–3.14). Dev tools are pinned in `requirements-dev.txt`. Floors raised to NumPy 2.0 and pandas 2.2.2 after testing them, and to Streamlit 1.54 for security fixes. `pip-audit` finds no known vulnerabilities in the lock or the minimum set.
 2. **CI:** one workflow with three jobs: Ruff; pytest on 3.11–3.14 plus an app start-up check; pytest with minimum versions on 3.11.
 3. **Coverage:** 99% of `disease_sim/` lines (target 90%), measured once; no coverage gate in CI.
-4. **Presets:** values unchanged pending the owner's decision on the recommended corrections; evidence and references added to MODEL.md §2, and a test pins the values.
+4. **Presets:** numerical values unchanged pending the owner's decisions. MODEL.md §2 documents the latent, infectious, and incubation periods, R₀, and Rₑ for each preset with sources, and the model's generation time compared with published serial intervals. The documented chickenpox R₀ range was broadened to about 3–12 (owner-approved). Tests pin the values and check the growth-rate formula.
 5. **Status wording:** the accuracy and unfinished-outbreak messages were rewritten in plain language.
 6. **Deployment:** Streamlit Community Cloud with Python 3.13, no secrets. Steps in docs/DEPLOYMENT.md. The owner deploys.

@@ -143,7 +143,7 @@ The app is designed for the free tier of [Streamlit Community Cloud](https://str
 - **Deterministic and continuous.** No chance events and fractional people, so small outbreaks never die out by chance.
 - **Fixed parameters.** No seasonality and no behavior change in response to the outbreak.
 - **Exponential waiting times.** Latent and infectious periods have the right averages but too much spread.
-- **Presets are approximations.** They use rounded published values, which vary by variant, population, immunity, and setting. They are not fitted to any outbreak.
+- **Presets are approximations.** They use rounded published values, which vary by variant, population, immunity, and setting, and are not fitted to any outbreak. Because waiting times are exponential, most presets make outbreaks grow more slowly than real ones, although the final size matches their R₀ ([MODEL.md §2](docs/MODEL.md#how-fast-outbreaks-grow-the-generation-time)).
 
 ## Intended educational use
 

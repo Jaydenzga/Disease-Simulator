@@ -517,7 +517,7 @@ def run() -> None:
         page_title="Disease Simulator",
         page_icon=":material/coronavirus:",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="auto",  # collapsed on phones, open on wider screens
     )
     config, disease, vaccination, contact_reduction = _sidebar()
     results, table, error = _compute(config, disease, vaccination, contact_reduction)

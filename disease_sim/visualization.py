@@ -8,6 +8,8 @@ every pair differs by at least 13 OKLab ΔE×100 under simulated protanopia and
 deuteranopia and by about 20 with normal vision.
 """
 
+import textwrap
+
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -64,6 +66,11 @@ def scenario_style(name: str, position: int) -> tuple[str, str]:
     return EXTRA_STYLES[position % len(EXTRA_STYLES)]
 
 
+def _wrap(name: str, width: int = 14) -> str:
+    """Break a long label over lines so it does not crowd a narrow chart."""
+    return "<br>".join(textwrap.wrap(name, width)) or name
+
+
 def _visible(values: pd.Series, log_y: bool) -> tuple[list, int]:
     """Values to draw and how many were hidden (only on a log axis)."""
     if not log_y:
@@ -74,21 +81,37 @@ def _visible(values: pd.Series, log_y: bool) -> tuple[list, int]:
 
 def _style(fig: go.Figure, title: str, x_title: str, y_title: str, log_y: bool = False) -> None:
     fig.update_layout(
-        title={"text": title, "x": 0, "xanchor": "left"},
+        title={"text": title, "x": 0, "xanchor": "left", "automargin": True},
         font={"family": "system-ui, -apple-system, Segoe UI, sans-serif", "size": 14, "color": INK},
         paper_bgcolor="white",
         plot_bgcolor="white",
         hovermode="x unified",
         separators=".,",
-        # Below the plot, so the legend wraps instead of squeezing a narrow chart.
-        legend={"orientation": "h", "yanchor": "top", "y": -0.18, "x": 0, "title": None},
+        # Horizontal, at the bottom of the figure: on narrow screens it wraps onto more
+        # rows and the plot shrinks to make room, so it never covers the title or axis.
+        legend={
+            "orientation": "h",
+            "yref": "container",
+            "y": 0,
+            "yanchor": "bottom",
+            "x": 0,
+            "xanchor": "left",
+            "title": None,
+        },
         margin={"l": 8, "r": 8, "t": 56, "b": 8},
     )
-    axis = {"showgrid": True, "gridcolor": GRID, "linecolor": GRID, "zeroline": False}
+    axis = {
+        "showgrid": True,
+        "gridcolor": GRID,
+        "linecolor": GRID,
+        "zeroline": False,
+        "automargin": True,  # grow the margin to fit tick labels and titles
+    }
     fig.update_xaxes(title=x_title, **axis)
     fig.update_yaxes(
         title=y_title,
         type="log" if log_y else "linear",
+        rangemode="normal" if log_y else "tozero",  # counts: a linear axis starts at 0
         tickformat="~s" if log_y else ",~r",
         **axis,
     )
@@ -182,7 +205,15 @@ def scenario_bar_figure(
     )
     _style(fig, title, axis_title, "")
     fig.update_layout(hovermode="closest", showlegend=False, margin={"r": 48})
-    fig.update_yaxes(autorange="reversed", showgrid=False)  # first scenario on top
+    # Scenario names on a category axis, first scenario on top, wrapped for narrow screens.
+    fig.update_yaxes(
+        type="category",
+        autorange="reversed",
+        showgrid=False,
+        tickformat="",
+        tickvals=names,
+        ticktext=[_wrap(name) for name in names],
+    )
     fig.update_xaxes(rangemode="tozero", ticksuffix="%" if percent else "")
     return fig
 
@@ -231,6 +262,14 @@ def daily_infected_distribution_figure(results: pd.DataFrame) -> go.Figure:
             )
         )
     _style(fig, "Distribution of daily infected counts", "People infected on a day", "")
+    names = list(results["scenario"].unique())
     fig.update_layout(hovermode="closest", showlegend=False)
-    fig.update_yaxes(autorange="reversed", showgrid=False)
+    fig.update_yaxes(
+        type="category",
+        autorange="reversed",
+        showgrid=False,
+        tickformat="",
+        tickvals=names,
+        ticktext=[_wrap(name) for name in names],
+    )
     return fig

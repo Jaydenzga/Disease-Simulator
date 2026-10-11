@@ -157,6 +157,7 @@ def test_scenario_bar_figure(percent):
     assert bar.text[0].endswith("%") == percent
     assert list(bar.marker.color) == [SCENARIO_STYLES[name][0] for name in TABLE.index]
     assert fig.layout.xaxis.title.text == "Axis"
+    assert fig.layout.yaxis.type == "category"  # scenario names, not numbers
 
 
 def test_infected_statistics_figure_draws_mean_and_median():
@@ -180,3 +181,4 @@ def test_distribution_figure_has_one_box_per_scenario():
         expected = SCENARIO_RESULTS.loc[SCENARIO_RESULTS["scenario"] == trace.name, "I"]
         assert list(trace.x) == expected.tolist()
         assert trace.boxmean is True
+    assert fig.layout.yaxis.type == "category"

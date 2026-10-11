@@ -12,6 +12,8 @@ from disease_sim.parameters import DiseaseParams, SimulationConfig, Vaccination,
         ({"population": 100, "initial_infected": 101, "days": 10}, "cannot exceed"),
         ({"population": 100, "initial_infected": 1, "days": 0}, "days"),
         ({"population": 100, "initial_infected": 1, "days": 2.5}, "days"),
+        ({"population": 100, "initial_infected": 1, "days": 10, "steps_per_day": 0}, "steps"),
+        ({"population": 100, "initial_infected": 1, "days": 10, "steps_per_day": 1.5}, "steps"),
     ],
 )
 def test_invalid_config(kwargs, message):
@@ -61,6 +63,7 @@ NON_FINITE = [float("nan"), float("inf"), float("-inf")]
         (lambda x: SimulationConfig(x, 1, 10), "population"),
         (lambda x: SimulationConfig(100, x, 10), "initial_infected"),
         (lambda x: SimulationConfig(100, 1, x), "days"),
+        (lambda x: SimulationConfig(100, 1, 10, x), "steps_per_day"),
         (lambda x: DiseaseParams(x, 0.1), "infection_rate"),
         (lambda x: DiseaseParams(0.1, x), "recovery_rate"),
         (lambda x: Vaccination(x, 0.5), "coverage"),
@@ -72,3 +75,7 @@ def test_non_finite_inputs_rejected(build, field, value):
     # than relying on range checks; infinite days must not raise OverflowError.
     with pytest.raises(ValueError, match=f"{field} must be a finite number"):
         build(value)
+
+
+def test_default_steps_per_day():
+    assert SimulationConfig(100, 1, 10).steps_per_day == 4

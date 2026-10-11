@@ -75,13 +75,29 @@ class Vaccination:
         object.__setattr__(self, "model", VaccineModel(self.model))
 
 
+DEFAULT_STEPS_PER_DAY = 4
+# One step per day reproduces the original single-file app exactly.
+LEGACY_STEPS_PER_DAY = 1
+
+
+def _check_positive_integer(name: str, value: float) -> None:
+    _check_finite(name, value)
+    if int(value) != value or value < 1:
+        raise ValueError(f"{name} must be a positive integer, got {value}")
+
+
 @dataclass(frozen=True)
 class SimulationConfig:
-    """Population size, initial outbreak size, and run length."""
+    """Population size, initial outbreak size, run length, and time resolution.
+
+    `steps_per_day` splits each day into that many Euler steps of length
+    1 / steps_per_day. Results are still reported once per day.
+    """
 
     population: float
     initial_infected: float
     days: int
+    steps_per_day: int = DEFAULT_STEPS_PER_DAY
 
     def __post_init__(self) -> None:
         _check_finite("population", self.population)
@@ -93,6 +109,5 @@ class SimulationConfig:
                 f"initial_infected ({self.initial_infected}) cannot exceed "
                 f"population ({self.population})"
             )
-        _check_finite("days", self.days)
-        if int(self.days) != self.days or self.days < 1:
-            raise ValueError(f"days must be a positive integer, got {self.days}")
+        _check_positive_integer("days", self.days)
+        _check_positive_integer("steps_per_day", self.steps_per_day)

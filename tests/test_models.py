@@ -1,9 +1,16 @@
 import itertools
+import math
 
 import pytest
 
-from disease_sim.models import COMPARTMENTS, simulate_sir
-from disease_sim.parameters import DiseaseParams, SimulationConfig, Vaccination, VaccineModel
+from disease_sim.models import COMPARTMENTS, simulate, simulate_sir
+from disease_sim.parameters import (
+    LEGACY_STEPS_PER_DAY,
+    DiseaseParams,
+    SimulationConfig,
+    Vaccination,
+    VaccineModel,
+)
 
 
 def original_main_py(population, infected, infection_rate, recovery_rate, days):
@@ -32,7 +39,8 @@ def original_main_py(population, infected, infection_rate, recovery_rate, days):
     ],
 )
 def test_matches_original_main_py(population, infected, beta, gamma, days):
-    results = simulate_sir(SimulationConfig(population, infected, days), DiseaseParams(beta, gamma))
+    config = SimulationConfig(population, infected, days, steps_per_day=LEGACY_STEPS_PER_DAY)
+    results = simulate_sir(config, DiseaseParams(beta, gamma))
     s, i, r = original_main_py(population, infected, beta, gamma, days)
     after_day_0 = results.iloc[1:]
     assert after_day_0["S"].tolist() == pytest.approx(s, abs=1e-9)
@@ -142,7 +150,7 @@ def test_full_vaccination_with_immunity_stops_spread():
 def _all_vaccinated_leaky(days):
     """Everyone susceptible is vaccinated, so every new infection is a breakthrough."""
     return simulate_sir(
-        SimulationConfig(1000, 10, days),
+        SimulationConfig(1000, 10, days, steps_per_day=LEGACY_STEPS_PER_DAY),
         DiseaseParams(0.4, 0.1),
         Vaccination(1.0, 0.5, VaccineModel.LEAKY),
     )
@@ -179,3 +187,50 @@ def test_higher_effectiveness_means_fewer_infections(model):
         for e in (0.0, 0.25, 0.5, 0.75, 1.0)
     ]
     assert all(a > b for a, b in itertools.pairwise(ever_infected))
+
+
+def final_size_fraction(r0, initial_susceptible_fraction):
+    """Fraction of N ever infected, from the Kermack-McKendrick final-size relation.
+
+    With no one recovered at the start, S_inf satisfies
+    S_inf / N = (S0 / N) * exp(-R0 * (1 - S_inf / N)). Fixed-point iteration
+    converges to the epidemic root because R0 * S_inf / N < 1 there.
+    """
+    s = 0.0
+    for _ in range(10_000):
+        s = initial_susceptible_fraction * math.exp(-r0 * (1 - s))
+    return 1 - s
+
+
+def _final_size_error(beta, gamma, steps_per_day):
+    n, i0 = 1000, 1
+    results = simulate(SimulationConfig(n, i0, 600, steps_per_day), DiseaseParams(beta, gamma))
+    exact = final_size_fraction(beta / gamma, (n - i0) / n)
+    simulated = 1 - results["S"].iloc[-1] / n
+    return abs(simulated - exact) / exact
+
+
+@pytest.mark.parametrize("beta, gamma", [(0.3, 0.1), (0.5, 0.25), (0.05, 0.03)])
+def test_final_size_matches_kermack_mckendrick(beta, gamma):
+    assert _final_size_error(beta, gamma, steps_per_day=10) < 0.01
+
+
+def test_more_steps_per_day_is_more_accurate():
+    # Forward Euler is first order: error shrinks roughly in proportion to dt.
+    errors = [_final_size_error(0.5, 0.25, k) for k in (1, 4, 10)]
+    assert errors[0] > errors[1] > errors[2]
+
+
+@pytest.mark.parametrize("steps_per_day", [1, 4, 10])
+def test_output_is_daily_whatever_the_step_size(steps_per_day):
+    results = simulate(SimulationConfig(1000, 2, 30, steps_per_day), DiseaseParams(0.3, 0.1))
+    assert results["day"].tolist() == list(range(31))
+    assert results.iloc[0][["S", "I"]].tolist() == [998, 2]
+
+
+def test_one_step_per_day_and_four_differ_but_agree_closely():
+    disease = DiseaseParams(0.3, 0.1)
+    legacy = simulate(SimulationConfig(1000, 2, 100, 1), disease)
+    default = simulate(SimulationConfig(1000, 2, 100), disease)
+    assert not legacy.equals(default)
+    assert (abs(legacy["I"] - default["I"]) < 0.05 * 1000).all()

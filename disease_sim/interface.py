@@ -225,11 +225,11 @@ def run() -> None:
 
     st.subheader("Your scenario")
     st.write(f"R₀ = {disease.basic_reproduction_number:.2f}")
-    st.pyplot(compartment_figure(chosen, vaccination.model, model=model))
+    st.plotly_chart(compartment_figure(chosen, vaccination.model, model=model), theme=None)
     st.caption(VACCINATED_CAPTIONS[vaccination.model])
 
     st.subheader("Compare scenarios")
-    st.pyplot(scenario_comparison_figure(results))
+    st.plotly_chart(scenario_comparison_figure(results), theme=None)
     table = summarize_scenarios(results, disease, scenarios)
     if table["still_infected_at_end"].any():
         st.warning(UNFINISHED_WARNING)

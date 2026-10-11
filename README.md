@@ -34,7 +34,8 @@ Every control has a **?** tooltip with a plain-language explanation.
 | | Population | Total number of people (N) |
 | | Initially infected | People infectious on day 0 |
 | | Days to simulate | Length of the simulation (up to 730 days) |
-| Disease | Describe the disease by | **R₀ and mean infectious period**, or the **rates** β and γ. Switching converts the current values. |
+| Disease | Disease preset | Fills in typical published values for COVID-19, influenza, measles, or chickenpox. Moving a disease slider switches back to **Custom**. |
+| | Describe the disease by | **R₀ and mean infectious period**, or the **rates** β and γ. Switching converts the current values. |
 | | R₀ / Mean infectious period | Converted to γ = 1 / period and β = R₀ · γ |
 | | Infection rate β / Recovery rate γ | Transmission and recovery rates, per day |
 | | Mean latent period (days) | SEIR only: average time from infection to becoming infectious (σ = 1 / period) |
@@ -81,6 +82,7 @@ disease_sim/
   models.py             Shared SIR/SEIR simulation engine
   metrics.py            Summary metrics and descriptive statistics
   scenarios.py          Four-scenario comparison
+  presets.py            Disease presets (COVID-19, influenza, measles, ...)
   visualization.py      Plotly charts
   explain.py            Tooltips, captions, and plain-language summaries
   export.py             CSV export

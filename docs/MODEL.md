@@ -55,7 +55,26 @@ With a leaky vaccine, V is also infected (§4), adding a term `m · β · V · I
 | — | Simulation length | days | Days to simulate (10–730) | 365 |
 | k | Euler steps per day (§6) | — | Simulation steps per day | 4 |
 
-The app opens in **SEIR** mode and takes the disease as **R₀ and mean infectious period D** (defaults R₀ = 2.5, D = 7 days). It converts them with γ = 1/D and β = R₀ · γ. The disease can instead be entered as the rates β and γ; switching between the two input modes converts the current values, rounded to the slider steps. The default interventions are 30% vaccination coverage at 90% effectiveness (all-or-nothing) and a 30% contact reduction from day 14, never lifted. These defaults are illustrative: chosen to show a clear outbreak and clear differences between scenarios, not to describe any real disease.
+The app opens in **SEIR** mode and takes the disease as **R₀ and mean infectious period D** (defaults R₀ = 2.5, D = 7 days). It converts them with γ = 1/D and β = R₀ · γ. The disease can instead be entered as the rates β and γ; switching between the two input modes converts the current values, rounded to the slider steps. The default interventions are 30% vaccination coverage at 90% effectiveness (all-or-nothing) and a 30% contact reduction from day 14, never lifted. These defaults are illustrative: chosen to show a clear outbreak and clear differences between scenarios, not to describe any real disease. The R₀ slider runs from 0.5 to 20 and the β slider from 0.01 to 3 per day, so every preset below fits.
+
+### Disease presets
+
+The **Disease preset** menu fills in R₀ and the mean infectious and latent periods with rounded values typical of published estimates. It does not change the model (SIR or SEIR), the population, or the interventions. SIR ignores the latent period. Moving any disease slider afterwards sets the menu back to **Custom**.
+
+| Preset | R₀ | Published R₀ estimates | Infectious period D | Latent period |
+|---|---|---|---|---|
+| COVID-19 (original strain, 2020) | 2.5 | about 2–3.5 | 5 days | 3 days |
+| COVID-19 (Delta variant, 2021) | 5 | about 3–8 | 5 days | 2 days |
+| Seasonal influenza | 1.3 | about 1.2–1.4 | 4 days | 2 days |
+| 1918 pandemic influenza | 2 | about 1.5–3 | 4 days | 2 days |
+| Measles | 15 | about 12–18 | 5 days | 8 days |
+| Chickenpox | 10 | about 7–12 | 7 days | 14 days |
+
+R₀ values follow Liu et al. (2020) and Liu & Rocklöv (2021) for COVID-19, Biggerstaff et al. (2014) for influenza, and Anderson & May (1991) and Keeling & Rohani (2008) for measles and chickenpox. The periods are rounded values of the kind used in teaching models. They are not fitted to data. Keep in mind:
+
+- Published estimates vary by place, time, and method. One number cannot describe a disease.
+- The model still applies its own assumptions (§10). It has no deaths, which matters for the 1918 influenza. Everyone starts susceptible, but real seasonal influenza meets partial prior immunity. People mix equally, and waiting times are exponential, so the presets show how each disease behaves *in this model*. They are not predictions.
+- High-R₀ presets (measles, Delta) need more steps per day to stay within the step-error tolerance (§6). The status area says when.
 
 ### Mean periods and exponential waiting times
 
@@ -237,9 +256,13 @@ The dashboard displays the quantities defined above without changing them. A few
 - **Fixed parameters:** β, γ, and σ do not change over time, except β under contact reduction. There is no seasonality and no behavior change in response to the epidemic.
 - **Vaccination only at day 0,** with immediate, permanent protection.
 - **Numerical approximation:** results are Euler approximations of the equations, with the errors given in §6.
-- **Not fitted to data:** default values are illustrative and do not describe any particular disease.
+- **Not fitted to data:** default values are illustrative and do not describe any particular disease. The disease presets (§2) use rounded published values but are not fitted to any outbreak.
 
 ## References
 
+- Anderson, R. M., & May, R. M. (1991). *Infectious Diseases of Humans: Dynamics and Control*. Oxford University Press.
+- Biggerstaff, M., Cauchemez, S., Reed, C., Gambhir, M., & Finelli, L. (2014). Estimates of the reproduction number for seasonal, pandemic, and zoonotic influenza: a systematic review of the literature. *BMC Infectious Diseases*, 14, 480.
 - Kermack, W. O., & McKendrick, A. G. (1927). A contribution to the mathematical theory of epidemics. *Proceedings of the Royal Society of London, Series A*, 115(772), 700–721.
 - Keeling, M. J., & Rohani, P. (2008). *Modeling Infectious Diseases in Humans and Animals*. Princeton University Press.
+- Liu, Y., Gayle, A. A., Wilder-Smith, A., & Rocklöv, J. (2020). The reproductive number of COVID-19 is higher compared to SARS coronavirus. *Journal of Travel Medicine*, 27(2), taaa021.
+- Liu, Y., & Rocklöv, J. (2021). The reproductive number of the Delta variant of SARS-CoV-2 is far higher compared to the ancestral SARS-CoV-2 virus. *Journal of Travel Medicine*, 28(7), taab124.

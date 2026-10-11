@@ -7,6 +7,7 @@ from streamlit.testing.v1 import AppTest
 import disease_sim.interface as interface
 from disease_sim import explain
 from disease_sim.parameters import ModelType, VaccineModel
+from disease_sim.presets import CUSTOM, PRESETS_BY_NAME
 from disease_sim.scenarios import COMBINED, CONTACT_REDUCTION_ONLY, NO_INTERVENTION
 
 MAIN = str(Path(__file__).resolve().parent.parent / "main.py")
@@ -236,6 +237,55 @@ def test_switching_input_mode_keeps_the_disease(simulations):
     assert _slider(app, "R₀").value == pytest.approx(2.0)
     assert _slider(app, "Mean infectious period (days)").value == pytest.approx(5.0)
     assert not app.exception
+
+
+def _preset(app):
+    return next(s for s in app.selectbox if s.label == "Disease preset")
+
+
+def test_choosing_a_preset_fills_in_the_disease(simulations):
+    app = _app()
+    assert _preset(app).value == CUSTOM
+    _preset(app).set_value("Measles").run()
+    measles = PRESETS_BY_NAME["Measles"]
+    assert _slider(app, "R₀").value == measles.r0
+    assert _slider(app, "Mean infectious period (days)").value == measles.infectious_period
+    assert _slider(app, "Mean latent period (days)").value == measles.latent_period
+    disease = simulations[-1]["disease"]
+    assert disease.basic_reproduction_number == pytest.approx(measles.r0)
+    assert disease.model is ModelType.SEIR  # the preset keeps the chosen model
+    assert any(c.value.startswith("R₀ 15 (published estimates") for c in app.caption)
+
+    # The rates view shows the same disease.
+    _radio(app, "Describe the disease by").set_value(interface.RATES_INPUT).run()
+    assert _slider(app, "Infection rate β (per day)").value == pytest.approx(3.0)
+    assert _slider(app, "Recovery rate γ (per day)").value == pytest.approx(0.2)
+    assert _preset(app).value == "Measles"
+
+
+def test_preset_set_while_in_rates_mode():
+    app = _app()
+    _radio(app, "Describe the disease by").set_value(interface.RATES_INPUT).run()
+    _preset(app).set_value("Seasonal influenza").run()
+    assert _slider(app, "Infection rate β (per day)").value == pytest.approx(0.325)
+    assert _slider(app, "Recovery rate γ (per day)").value == pytest.approx(0.25)
+
+
+def test_editing_the_disease_switches_preset_to_custom(simulations):
+    app = _app()
+    _preset(app).set_value("Seasonal influenza").run()
+    _slider(app, "R₀").set_value(1.8).run()
+    assert _preset(app).value == CUSTOM
+    assert simulations[-1]["disease"].basic_reproduction_number == pytest.approx(1.8)
+    assert _slider(app, "Mean infectious period (days)").value == 4.0  # kept from the preset
+
+
+def test_reset_returns_preset_to_custom():
+    app = _app()
+    _preset(app).set_value("Chickenpox").run()
+    next(b for b in app.button if b.label == "Reset to defaults").click().run()
+    assert _preset(app).value == CUSTOM
+    assert _slider(app, "R₀").value == interface.DEFAULTS["r0"]
 
 
 def test_initial_infected_cannot_exceed_population(simulations):

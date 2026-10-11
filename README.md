@@ -22,25 +22,38 @@ pip install -r requirements.txt
 streamlit run main.py
 ```
 
-The app opens in your browser at http://localhost:8501. Controls:
+The app opens in your browser at http://localhost:8501. It starts with an illustrative SEIR outbreak (R₀ = 2.5, N = 10,000) and both interventions switched on; **Reset to defaults** in the sidebar restores these settings at any time.
 
-| Control | Meaning |
-|---|---|
-| Model | **SIR**, or **SEIR**, which adds an Exposed stage (infected but not yet infectious) |
-| Population | Total number of people (N) |
-| Initial Infected | People infectious on day 0 |
-| Disease Input | Enter the disease as **rates** (β, γ) or as **R₀ and mean infectious period** |
-| Infection Rate / Recovery Rate | Transmission rate β and recovery rate γ, per day |
-| R₀ / Mean infectious period | Converted to γ = 1 / period and β = R₀ · γ |
-| Mean latent period (days) | SEIR only: average time from infection to becoming infectious (σ = 1 / period) |
-| Days | Length of the simulation |
-| Vaccinated (%) | Share of the initially susceptible population vaccinated on day 0 |
-| Vaccine Effectiveness (%) | How well the vaccine works (meaning depends on the vaccine model) |
-| Vaccine Model | **Immunity**: that % of vaccinated people are fully immune. **Partial protection**: every vaccinated person's infection risk is reduced by that %. |
-| Contact Reduction (%) | Distancing or masking: lowers transmission by this % from the start day, optionally until an end day |
-| Simulation steps per day | Accuracy of the numerical solution: 4 by default, 1 reproduces the original app, up to 50. The app estimates the numerical error and warns when more steps are needed. |
+### Sidebar controls
 
-The app shows the compartment curves for your settings, then compares four scenarios (**no intervention**, **vaccination only**, **contact reduction only**, **both**) in one chart and a summary table. The table lists peak infected and peak day; the mean, median, and standard deviation of daily infected counts; new and cumulative infections; attack rate; infections averted; and Rₑ at day 0.
+Every control has a **?** tooltip with a plain-language explanation.
+
+| Group | Control | Meaning |
+|---|---|---|
+| Model and population | Model | **SIR**, or **SEIR**, which adds an Exposed stage (infected but not yet infectious) |
+| | Population | Total number of people (N) |
+| | Initially infected | People infectious on day 0 |
+| | Days to simulate | Length of the simulation (up to 730 days) |
+| Disease | Describe the disease by | **R₀ and mean infectious period**, or the **rates** β and γ. Switching converts the current values. |
+| | R₀ / Mean infectious period | Converted to γ = 1 / period and β = R₀ · γ |
+| | Infection rate β / Recovery rate γ | Transmission and recovery rates, per day |
+| | Mean latent period (days) | SEIR only: average time from infection to becoming infectious (σ = 1 / period) |
+| Vaccination | Vaccination coverage (%) | Share of the initially susceptible population vaccinated on day 0 |
+| | Vaccine effectiveness (%) | How well the vaccine works (meaning depends on the vaccine model) |
+| | Vaccine model | **Immunity**: that % of vaccinated people are fully immune. **Partial protection**: every vaccinated person's infection risk is reduced by that %. |
+| Contact reduction | Contact reduction (%) | Distancing or masking: lowers transmission by this % from the start day, optionally until an end day |
+| Numerical accuracy | Simulation steps per day | 4 by default, 1 reproduces the original app, up to 50 |
+
+### Dashboard
+
+- **Status area** (always visible): the estimated numerical error, and whether every scenario's outbreak is over by the last day.
+- **Simulation:** summary cards (R₀, Rₑ at day 0, peak infected, peak day, attack rate), a one-paragraph summary in plain language, and the compartment chart with an optional logarithmic axis.
+- **Compare:** the infected curves of four scenarios (**no intervention**, **vaccination only**, **contact reduction only**, **both**), bar charts of peak infected and attack rate, and a comparison table with infections averted.
+- **Statistics:** the mean and median of the daily infected counts drawn on the curve, a box plot per scenario, and a descriptive-statistics table, with an explanation of how deterministic results, numerical error, and statistical uncertainty differ.
+- **Data:** the daily results, with CSV downloads for your scenario, all scenarios (columns `scenario, day, S, E, I, R, V`), and the scenario summary.
+- **About:** the full model description from [docs/MODEL.md](docs/MODEL.md).
+
+Charts are interactive (hover, zoom, click a legend entry to hide a series), use colorblind-safe colors with a distinct line pattern per series, and adapt to narrow screens.
 
 ## The model
 
@@ -68,8 +81,11 @@ disease_sim/
   models.py             Shared SIR/SEIR simulation engine
   metrics.py            Summary metrics and descriptive statistics
   scenarios.py          Four-scenario comparison
-  visualization.py      Charts
-  interface.py          Streamlit controls and layout
+  visualization.py      Plotly charts
+  explain.py            Tooltips, captions, and plain-language summaries
+  export.py             CSV export
+  interface.py          Streamlit dashboard (the only module that imports streamlit)
+.streamlit/config.toml  Theme
 tests/                  Pytest suite
 docs/MODEL.md           Scientific documentation
 docs/ROADMAP.md         Development plan
@@ -83,4 +99,4 @@ pytest
 ruff check .
 ```
 
-The tests check that the population total is conserved and no compartment goes negative; that the SIR model at 1 step per day reproduces the original version of this app exactly; that SIR and SEIR match the Kermack–McKendrick final-size equation; that SEIR approaches SIR as the latent period shrinks; that interventions behave as expected; that metrics match hand calculations; and that invalid inputs (including NaN and infinity) are rejected.
+The tests check that the population total is conserved and no compartment goes negative; that the SIR model at 1 step per day reproduces the original version of this app exactly; that SIR and SEIR match the Kermack–McKendrick final-size equation; that SEIR approaches SIR as the latent period shrinks; that interventions behave as expected; that metrics match hand calculations; that charts have the expected series, axes, colors, and log-scale handling; that the dashboard's tabs, controls, reset button, CSV downloads, and caching work; and that invalid inputs (including NaN and infinity) are rejected.

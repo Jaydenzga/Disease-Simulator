@@ -1,6 +1,6 @@
 # Disease Simulator — Implementation Roadmap
 
-Status: **Approved 2026-10-10.** Phase 1 complete. Phase 2 implemented on `feature/phase-2-seir`. Decisions are recorded at the end of this document.
+Status: **Approved 2026-10-10.** Phases 1 and 2 complete. Phase 3 implemented on `feature/phase-3-dashboard`. Decisions are recorded at the end of this document.
 Owner: Jayden (approves architecture and features) · Lead engineer: Claude Code
 
 This document is the plan for turning the single-file Streamlit SIR demo (`main.py`) into a tested, documented, deployable epidemiological simulation app.
@@ -65,7 +65,7 @@ Design rules:
 `requirements.txt` (runtime, used by Streamlit Community Cloud):
 
 ```
-streamlit>=1.33
+streamlit>=1.50
 plotly>=5.18
 pandas>=2.0
 numpy>=1.26
@@ -80,7 +80,7 @@ ruff>=0.4
 ```
 
 Notes:
-- **matplotlib is removed.** Plotly replaces it in Phase 3. Until then, Phase 1 keeps the matplotlib chart so the app works after each phase, and `requirements.txt` lists it temporarily.
+- **matplotlib is removed** (Phase 3). Plotly replaced it; Phases 1–2 used matplotlib temporarily so the app worked after each phase.
 - **No SciPy.** The models are simple enough to step directly (see §4.1), and leaving SciPy out keeps deployment light.
 - I'll use lower-bound pins as above and confirm the exact versions on a clean install during Phase 4.
 - **Python version:** CI tests 3.11, 3.12, and 3.13. Your local Python is 3.14. I'll check that all dependencies install on 3.14 and add it to the CI matrix if they do.
@@ -228,11 +228,11 @@ Tasks
 5. Drop matplotlib from dependencies.
 
 Acceptance criteria
-- [ ] All charts are Plotly with working hover, zoom, and legend toggling.
-- [ ] CSV downloads open in Excel and pandas with columns `scenario, day, S, E, I, R, V`.
-- [ ] Changing a slider updates results in under about 0.5 s with default settings on a laptop.
-- [ ] The layout is usable at narrow (mobile) widths.
-- [ ] `visualization.py` functions have tests confirming expected traces and axis labels.
+- [x] All charts are Plotly with working hover, zoom, and legend toggling.
+- [x] CSV downloads open in Excel and pandas with columns `scenario, day, S, E, I, R, V`.
+- [x] Changing a slider updates results in under about 0.5 s with default settings on a laptop.
+- [x] The layout is usable at narrow (mobile) widths.
+- [x] `visualization.py` functions have tests confirming expected traces and axis labels.
 
 ### Phase 4 — Deployment and real-user testing
 
@@ -320,3 +320,12 @@ Disease deaths (SEIRD), waning immunity or reinfection (SEIRS), vaccination roll
 5. **Statistics (PSY 2301):** mean, median, population SD, peak and peak day of the daily infected counts, documented as descriptive statistics of a deterministic series. Advanced statistics wait for Phase 5.
 6. **Interface:** basic controls, a four-scenario chart, and a summary table in Phase 2; the polished Plotly dashboard waits for Phase 3.
 7. **Roadmap additions:** Phase 3 adds statistical visualizations, Phase 4 adds real-user testing, and Phase 4.5 (bootcamp), Phase 5 (Statistical Epidemiology Lab), and an optional graph-based phase are added.
+
+## Phase 3 decisions (approved 2026-10-10)
+
+1. **Defaults:** illustrative settings that show a clear outbreak: SEIR, N = 10,000, 10 initially infected, R₀ = 2.5, 7-day infectious period, 5-day latent period, 365 days, 30% coverage at 90% effectiveness, 30% contact reduction from day 14. The app opens in SEIR mode; SIR stays selectable. With these defaults the combined SEIR scenario is still infected on day 365, so the unfinished-outbreak warning shows; the Days slider goes up to 730 so it can be made to finish.
+2. **Scenarios:** the four presets stay driven by the shared disease settings and the sidebar interventions; no per-scenario editing yet.
+3. **Theme:** `.streamlit/config.toml` moved from Phase 4 into Phase 3.
+4. **Tabs:** Simulation, Compare, Statistics, Data, About, with a status area above them that always shows the numerical-error estimate and unfinished outbreaks.
+5. **Log scale:** values below 0.01 people (including zeros) are not drawn on log axes, and the chart says how many were left out.
+6. **Accessibility:** a categorical palette checked for colorblind separation, plus a distinct line pattern for each series.

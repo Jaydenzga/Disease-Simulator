@@ -47,15 +47,15 @@ With a leaky vaccine, V is also infected (§4), adding a term `m · β · V · I
 
 | Symbol | Meaning | Unit | App control | Default |
 |---|---|---|---|---|
-| N | Total population | people | Population | 1,000 |
-| I₀ | Infectious on day 0 (E₀ = R₀ = 0) | people | Initial Infected | 2 |
-| β | Transmission rate: new infections caused per infectious person per day, in a fully susceptible population | 1/day | Infection Rate | 0.05 |
-| γ | Recovery rate | 1/day | Recovery Rate | 0.03 |
+| N | Total population | people | Population | 10,000 |
+| I₀ | Infectious on day 0 (E₀ = R₀ = 0) | people | Initially infected | 10 |
+| β | Transmission rate: new infections caused per infectious person per day, in a fully susceptible population | 1/day | Infection rate β | 0.357 (from R₀ = 2.5 and D = 7 days) |
+| γ | Recovery rate | 1/day | Recovery rate γ | 0.143 (1 / 7 days) |
 | σ | Progression rate from E to I | 1/day | Mean latent period (days), as σ = 1 / period | 5 days (σ = 0.2) |
-| — | Simulation length | days | Days | 30 |
+| — | Simulation length | days | Days to simulate (10–730) | 365 |
 | k | Euler steps per day (§6) | — | Simulation steps per day | 4 |
 
-The app can also take the disease as **R₀ and mean infectious period D** instead of β and γ. It converts them with γ = 1/D and β = R₀ · γ.
+The app opens in **SEIR** mode and takes the disease as **R₀ and mean infectious period D** (defaults R₀ = 2.5, D = 7 days). It converts them with γ = 1/D and β = R₀ · γ. The disease can instead be entered as the rates β and γ; switching between the two input modes converts the current values, rounded to the slider steps. The default interventions are 30% vaccination coverage at 90% effectiveness (all-or-nothing) and a 30% contact reduction from day 14, never lifted. These defaults are illustrative: chosen to show a clear outbreak and clear differences between scenarios, not to describe any real disease.
 
 ### Mean periods and exponential waiting times
 
@@ -155,10 +155,11 @@ The final size is the most forgiving measure. The **shape and timing** of the cu
 
 | Disease | 1 step/day | 4 | 10 | 20 | 50 |
 |---|---|---|---|---|---|
-| β = 0.05, γ = 0.03 (app defaults) | 1.5% | 0.4% | 0.1% | 0.1% | 0.0% |
+| β = 0.05, γ = 0.03 (Phase 1 defaults) | 1.5% | 0.4% | 0.1% | 0.1% | 0.0% |
 | β = 0.5, γ = 0.03 (rate sliders at maximum) | 28% | 7.5% | 3.0% | 1.5% | 0.6% |
 | R₀ = 4, infectious period 1 day | 105% | 49% | 22% | 10% | 3.8% |
-| SEIR default (β = 0.3, γ = 0.1, 5-day latent period) | 7.5% | 1.8% | 0.7% | 0.4% | 0.1% |
+| SEIR example (β = 0.3, γ = 0.1, 5-day latent period) | 7.5% | 1.8% | 0.7% | 0.4% | 0.1% |
+| SEIR app defaults, no intervention (R₀ = 2.5, 7-day infectious, 5-day latent, N = 10,000, I₀ = 10, 365 days) | 8.7% | 2.1% | 0.8% | 0.4% | 0.2% |
 
 **Estimating the error while the app runs: step doubling.** Because Euler's error is roughly proportional to Δt, halving the step roughly halves the error. The app therefore re-runs every scenario with twice the steps per day and compares:
 
@@ -166,7 +167,7 @@ The final size is the most forgiving measure. The **shape and timing** of the cu
 estimated error ≈ 2 × max over days |I_k(t) − I_2k(t)| ÷ peak of I_2k
 ```
 
-If the estimate exceeds **5%** for any scenario, the app shows a warning with the approximate number of steps needed (k × error ÷ 5%, rounded up to an offered setting). The estimate matches the true error closely while no cap is triggering. When caps trigger (very fast rates at few steps), it tends to overestimate, so the warning errs on the side of caution.
+The app always shows this estimate (the largest across the four scenarios) in its status area. If it exceeds **5%**, the status becomes a warning with the approximate number of steps needed (k × error ÷ 5%, rounded up to an offered setting). The estimate matches the true error closely while no cap is triggering. When caps trigger (very fast rates at few steps), it tends to overestimate, so the warning errs on the side of caution.
 
 ## 7. Summary metrics
 
@@ -214,7 +215,19 @@ The app runs four scenarios that share the same population, run length, steps pe
 3. **Contact reduction only:** the chosen contact reduction settings
 4. **Vaccination + contact reduction:** both. This is exactly the user's chosen settings and is the scenario drawn in the main chart.
 
-## 9. Assumptions and limitations
+## 9. How the app presents results
+
+The dashboard displays the quantities defined above without changing them. A few presentation rules affect how they look:
+
+- **Status area.** Above the tabs, the app always shows the step-doubling error estimate (§6) and whether every scenario's outbreak is over by the last day ("Still infected at end", §7), naming any scenario that is not.
+- **Three kinds of numbers.** The app separates (1) **model results**, which are deterministic; (2) **numerical error**, the estimated gap between the Euler approximation and the exact solution of the equations (§6), which says nothing about whether the equations are realistic; and (3) **statistical uncertainty**, from chance or uncertain parameters, which this model does **not** measure (§7).
+- **Logarithmic y-axis.** Zero has no position on a log axis. On log charts, daily values below **0.01 people**, including zeros, are left out (the line has a gap there), and the chart states how many values were left out. Linear charts draw every value and start at 0.
+- **Statistics tab.** The mean and median are drawn as reference lines on the infected curve. A box plot shows each scenario's daily infected counts (median, quartiles, mean, and unusually high days). These describe one deterministic curve across simulated days, not uncertainty across possible outbreaks (§7).
+- **Colors and line patterns.** Each compartment and each scenario has a fixed color and line pattern, so a series looks the same on every chart and can be identified without color.
+- **CSV downloads.** Daily results in long format with columns `scenario, day, S, E, I, R, V` (your scenario, or all four), and the scenario summary table with one row per scenario. Values are not rounded. Attack rate is a fraction from 0 to 1.
+- **Caching.** Results are cached by their exact inputs, so returning to earlier settings shows the same results without recomputing them.
+
+## 10. Assumptions and limitations
 
 - **Homogeneous mixing:** everyone is equally likely to contact everyone else. There are no households, age groups, locations, or networks.
 - **Closed population:** no births, deaths from any cause, or migration. The disease is never fatal in this model.
